@@ -1,0 +1,141 @@
+# Development Guide
+
+This file provides guidance for developers and AI assistants working with this codebase.
+
+## Project Overview
+
+Karibu Backend is a TypeScript API server built with **Hono** (lightweight web framework), **Drizzle ORM** (PostgreSQL), and **Pino** (structured logging). The server is designed to run on both traditional Node.js environments (EC2) and serverless platforms (Vercel).
+
+## Development Commands
+
+### Basic Commands
+- `pnpm dev` - Start development server with hot reload (uses tsx watch)
+- `pnpm build` - Compile TypeScript to JavaScript (output: `dist/`)
+- `pnpm start` - Run production build from `dist/`
+
+### Database Commands
+- `pnpm db:generate` - Generate SQL migrations from Drizzle schema
+- `pnpm db:migrate` - Apply migrations to database
+- `pnpm db:push` - Push schema changes directly without migrations (development only)
+- `pnpm db:studio` - Open Drizzle Studio GUI for database exploration
+
+### Type Checking
+- `pnpm tsc --noEmit` - Run TypeScript type checking without building
+
+## Architecture
+
+### Configuration System
+All configuration is validated at startup using Zod schemas in `src/config/env.ts`:
+- Environment variables are loaded via `dotenv/config` import
+- Validation fails fast with detailed error messages if config is invalid
+- Type-safe config exported as `env` object
+- CORS_ORIGIN supports comma-separated list of origins (parsed into array)
+
+### Database Layer (Drizzle ORM)
+- **Connection**: Uses `postgres` library (not `pg`) with connection pooling
+- **Schema**: Define tables in `src/db/schema.ts` using Drizzle's table definitions
+- **Workflow**: Edit schema → `pnpm db:generate` → `pnpm db:migrate` (or `db:push` for dev)
+- **Migrations**: Generated SQL files stored in `src/db/migrations/`
+- **Export pattern**: Both `db` (Drizzle client) and `sql` (raw Postgres connection) are exported from `src/db/index.ts`
+
+### Logging (Pino)
+- **Development**: Pretty-printed with colors (via `pino-pretty` transport)
+- **Production**: Raw JSON output for log aggregation
+- **HTTP logging**: Automatic via `hono-pino` middleware (logs all requests/responses)
+- **Convention**:
+  - Ongoing processes end with `...` (e.g., "Server is running...")
+  - Completed actions end with `.` (e.g., "Database connection failed.")
+- **Usage**: Import `logger` from `src/config/logger.ts`
+
+### Middleware Stack
+Middleware applied in order (see `src/index.ts`):
+1. `pinoLogger` - HTTP request/response logging
+2. `corsMiddleware` - CORS with configurable origins from env
+3. Application routes
+
+### Routing Pattern
+Routes are modular and registered via `registerRoutes()` in `src/routes/index.ts`:
+- Each route module exports a Hono instance
+- Routes are mounted using `app.route()` in the registration function
+- Example: `health.ts` exports a Hono app with `/status` endpoint
+
+### Module System
+- **Type**: ES Modules (`"type": "module"` in package.json)
+- **Import style**: Always use `.js` extension in imports (e.g., `from './config/env.js'`)
+- **TypeScript config**: Uses `NodeNext` module resolution
+
+## Database Schema Development
+
+To add new tables:
+1. Edit `src/db/schema.ts` with Drizzle table definitions
+2. Run `pnpm db:generate` to create migration SQL
+3. Run `pnpm db:migrate` to apply to database
+4. For rapid iteration: Use `pnpm db:push` to skip migration files
+
+Example schema pattern:
+```typescript
+import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+```
+
+## Deployment Targets
+
+This backend supports multiple deployment environments:
+- **EC2/Traditional Node.js**: Full feature support, async logging
+- **Vercel Serverless**: Pino runs in sync mode, JSON logs captured automatically
+- **Supabase Postgres**: Use connection string format: `postgresql://postgres:[PASSWORD]@[PROJECT_REF].supabase.co:5432/postgres`
+
+## Environment Variables
+
+Required variables (see `.env.example`):
+- `PORT` - Server port (default: 3000)
+- `NODE_ENV` - Environment (development/production/test)
+- `LOG_LEVEL` - Pino log level (fatal/error/warn/info/debug/trace)
+- `DATABASE_URL` - PostgreSQL connection string
+- `CORS_ORIGIN` - Comma-separated list of allowed origins
+
+## Code Style Conventions
+
+- **No emojis** in code or logs
+- **Logging convention**: Use `...` for ongoing states, `.` for completed actions
+- **TypeScript**: Strict mode enabled, all imports must use `.js` extensions
+- **Error handling**: Use Pino's structured logging with error context: `logger.error({ error }, 'message')`
+- **Block spacing**: Always add blank lines inside code blocks (functions, if statements, callbacks, etc.)
+  ```typescript
+  // Good
+  if (condition) {
+
+    doSomething()
+  }
+
+  function example() {
+
+    return value
+  }
+
+  // Bad
+  if (condition) {
+    doSomething()
+  }
+
+  function example() {
+    return value
+  }
+  ```
+
+## AI Assistant Notes
+
+This project includes semantic code search embeddings (qmd) for AI-powered codebase exploration.
+
+**For AI assistants - Search Strategy:**
+1. **Prefer qmd tools first** for finding code patterns, similar functionality, or understanding architecture:
+   - Use semantic search for concepts ("how is authentication handled?")
+   - Use keyword search for specific identifiers
+   - Use hybrid query for complex questions
+
+2. **Fall back to Glob/Grep** only if qmd doesn't return sufficient results or for very specific file patterns
