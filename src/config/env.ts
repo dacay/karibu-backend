@@ -15,6 +15,12 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string()
     .transform((val) => val.split(',').map((origin) => origin.trim()))
     .pipe(z.array(z.string().url())),
+
+  // JWT Configuration
+  JWT_SECRET: z.string().min(32),
+  JWT_AUDIENCE: z.string().url().default('https://test.karibu.ai'),
+  JWT_EXPIRATION: z.string().default('30d'),
+  JWT_ALGORITHM: z.enum(['HS256', 'HS384', 'HS512']).default('HS256'),
 })
 
 const parseEnv = () => {
