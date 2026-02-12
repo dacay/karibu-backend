@@ -21,6 +21,18 @@ const envSchema = z.object({
   JWT_AUDIENCE: z.string().url().default('https://test.karibu.ai'),
   JWT_EXPIRATION: z.string().default('30d'),
   JWT_ALGORITHM: z.enum(['HS256', 'HS384', 'HS512']).default('HS256'),
+
+  // Notification Channels (comma-separated, e.g. "sms")
+  NOTIFICATION_CHANNELS: z.string()
+    .default('')
+    .transform((val) => val.split(',')
+      .map((ch) => ch.trim().toLowerCase())
+      .filter((ch) => ch.length > 0)),
+
+  // Twilio Configuration (SMS Notifications)
+  TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
+  TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
+  TWILIO_PHONE_NUMBER: z.string().regex(/^\+[1-9]\d{1,14}$/).optional(), // E.164 format
 })
 
 const parseEnv = () => {

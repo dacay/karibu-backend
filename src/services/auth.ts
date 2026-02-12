@@ -69,7 +69,7 @@ export const loginWithPassword = async (
     const { token, jti, expiresAt } = await generateToken(
       user.id,
       user.role,
-      organization.name
+      organization.id
     );
 
     // Create session record
@@ -116,21 +116,23 @@ export const loginWithToken = async (
 
   try {
 
-    // Find valid login token
+    // Find valid login token belonging to a user in this organization
     const [loginToken] = await db
-      .select()
+      .select({ authTokens })
       .from(authTokens)
+      .innerJoin(users, eq(authTokens.userId, users.id))
       .where(
         and(
           eq(authTokens.token, token),
-          isNull(authTokens.usedAt)
+          eq(users.organizationId, organization.id)
         )
       )
-      .limit(1);
+      .limit(1)
+      .then((rows) => rows.map((r) => r.authTokens));
 
     if (!loginToken) {
 
-      logger.debug({ token: token.substring(0, 8) + '...' }, 'Login attempt with invalid token.');
+      logger.debug({ token: token.substring(0, 8) + '...' }, 'Login attempt with invalid or cross-organization token.');
 
       return { success: false, error: 'Invalid or expired token' };
     }
@@ -143,10 +145,10 @@ export const loginWithToken = async (
       return { success: false, error: 'Invalid or expired token' };
     }
 
-    // Mark token as used
+    // Track last use
     await db
       .update(authTokens)
-      .set({ usedAt: new Date() })
+      .set({ lastUsedAt: new Date() })
       .where(eq(authTokens.id, loginToken.id));
 
     // Find user by ID and organization
@@ -172,7 +174,7 @@ export const loginWithToken = async (
     const { token: jwtToken, jti, expiresAt } = await generateToken(
       user.id,
       user.role,
-      organization.name
+      organization.id
     );
 
     // Create session record

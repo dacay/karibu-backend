@@ -11,7 +11,7 @@ import type { JWTPayload } from '../types/auth.js';
 export const generateToken = async (
   userId: string,
   role: 'admin' | 'user',
-  organization: string
+  organizationId: string
 ): Promise<{ token: string; jti: string; expiresAt: Date }> => {
 
   const jti = generateSessionId();
@@ -29,7 +29,7 @@ export const generateToken = async (
     sub: userId,
     jti,
     role,
-    organization,
+    organizationId,
     aud: env.JWT_AUDIENCE,
     iat: now,
     exp,

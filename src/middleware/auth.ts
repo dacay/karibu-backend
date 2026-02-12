@@ -2,7 +2,7 @@ import type { MiddlewareHandler } from 'hono';
 import { isSessionValid } from '../services/auth.js';
 import { logger } from '../config/logger.js';
 import { verifyToken } from '../utils/jwt.js';
-import type { JWTPayload } from '../types/auth.js';
+import type { AuthContext } from '../types/auth.js';
 
 /**
  * JWT authentication middleware
@@ -49,8 +49,13 @@ export const authMiddleware = (): MiddlewareHandler => {
         return c.json({ error: 'Session expired or revoked' }, 401);
       }
 
-      // Set payload in context for use in handlers
-      c.set('auth', payload);
+      // Map to lean auth context for use in handlers
+      c.set('auth', {
+        userId: payload.sub,
+        organizationId: payload.organizationId,
+        sessionId: payload.jti,
+        role: payload.role,
+      } satisfies AuthContext);
 
       // Session is valid, proceed
       await next();
@@ -72,20 +77,19 @@ export const requireRole = (...roles: Array<'admin' | 'user'>): MiddlewareHandle
 
   return async (c, next) => {
 
-    const payload = c.get('auth') as JWTPayload;
+    const auth = c.get('auth');
 
-    // Check if payload is missing
-    if (!payload) {
+    if (!auth) {
 
-      logger.warn('Role check attempted without JWT payload.');
+      logger.warn('Role check attempted without auth context.');
 
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    if (!roles.includes(payload.role)) {
+    if (!roles.includes(auth.role)) {
 
       logger.debug(
-        { userId: payload.sub, role: payload.role, requiredRoles: roles },
+        { userId: auth.userId, role: auth.role, requiredRoles: roles },
         'Insufficient permissions.'
       );
 

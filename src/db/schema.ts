@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, pgEnum, jsonb } from 'drizzle-orm/pg-core';
 
 // Role enum
 export const roleEnum = pgEnum('role', ['admin', 'user']);
@@ -39,12 +39,25 @@ export const authSessions = pgTable('auth_sessions', {
   createdAt: timestamps.createdAt,
 });
 
+// Notification logs table - records every notification attempt and its outcome
+export const notificationChannelEnum = pgEnum('notification_channel', ['sms']);
+export const notificationStatusEnum = pgEnum('notification_status', ['sent', 'failed']);
+
+export const notificationLogs = pgTable('notification_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  channel: notificationChannelEnum('channel').notNull(),
+  status: notificationStatusEnum('status').notNull(),
+  metadata: jsonb('metadata'), // platform-specific payload (e.g. Twilio SID, error details)
+  createdAt: timestamps.createdAt,
+});
+
 // Auth tokens table - for direct URL login (magic links, etc.)
 export const authTokens = pgTable('auth_tokens', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(), // Unique token (use crypto.randomBytes)
   expiresAt: timestamp('expires_at').notNull(),
-  usedAt: timestamp('used_at'), // Track if token has been used
+  lastUsedAt: timestamp('last_used_at'), // Track last time the token was used
   createdAt: timestamps.createdAt,
 });

@@ -4,7 +4,7 @@ export interface JWTPayload extends BaseJWTPayload {
 
   sub: string; // user ID
   jti: string; // session ID for revocation
-  organization: string;
+  organizationId: string;
   role: 'admin' | 'user';
 }
 
@@ -50,12 +50,20 @@ export interface Organization {
   updatedAt: Date;
 }
 
-// Extend Hono's context with JWT payload type
+export interface AuthContext {
+
+  userId: string;
+  organizationId: string;
+  sessionId: string;
+  role: 'admin' | 'user';
+}
+
+// Extend Hono's context with auth context type
 declare module 'hono' {
 
   interface ContextVariableMap {
 
-    auth: JWTPayload;
+    auth: AuthContext;
     organization: Organization;
   }
 }
