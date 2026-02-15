@@ -17,7 +17,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
-  if (res.status === 401 && typeof window !== "undefined") {
+  if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/")) {
     localStorage.removeItem("karibu_token");
     localStorage.removeItem("karibu_user");
     window.location.href = "/login";
