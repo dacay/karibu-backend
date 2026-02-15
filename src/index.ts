@@ -4,8 +4,12 @@ import { pinoLogger } from 'hono-pino'
 import { env } from './config/env.js'
 import { logger } from './config/logger.js'
 import { corsMiddleware } from './middleware/cors.js'
+import { errorReporterMiddleware } from './middleware/errorReporter.js'
 import { registerRoutes } from './routes/index.js'
 import { sql, testConnection } from './db/index.js'
+import { initErrorReporter } from './utils/errorReporter.js'
+
+initErrorReporter()
 
 const app = new Hono()
 
@@ -17,6 +21,9 @@ app.use('*', corsMiddleware())
 
 // Register routes
 registerRoutes(app)
+
+// Catch and report unexpected errors
+app.onError(errorReporterMiddleware)
 
 // Test database connection before starting server
 const dbConnected = await testConnection()

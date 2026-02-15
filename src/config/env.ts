@@ -33,6 +33,9 @@ const envSchema = z.object({
   TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
   TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
   TWILIO_PHONE_NUMBER: z.string().regex(/^\+[1-9]\d{1,14}$/).optional(), // E.164 format
+
+  // Error Reporting (Sentry)
+  SENTRY_DSN: z.string().url().optional(),
 })
 
 const parseEnv = () => {

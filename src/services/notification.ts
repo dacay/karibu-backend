@@ -4,6 +4,7 @@ import { db } from '../db/index.js';
 import { users, notificationLogs } from '../db/schema.js';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
+import { reportMessage } from '../utils/errorReporter.js';
 
 /**
  * Send an SMS notification to a user
@@ -31,10 +32,12 @@ const sendSmsNotification = async (
     to: phoneNumber,
   });
 
-  logger.info(
+  logger.debug(
     { messageId: twilioMessage.sid, to: phoneNumber },
     'SMS notification sent successfully.'
   );
+
+  reportMessage('SMS notification sent successfully.', 'info', { messageId: twilioMessage.sid, to: phoneNumber });
 
   return twilioMessage.sid;
 };
@@ -57,7 +60,7 @@ export const sendNotificationToUser = async (
 
     logger.error('No notification channels configured');
 
-    //TODO Report this error to us!
+    reportMessage('No notification channels configured', 'error');
 
     throw new Error('No notification channels configured');
   }
@@ -73,7 +76,7 @@ export const sendNotificationToUser = async (
 
     logger.error({ userId }, 'User not found for notification.');
 
-    //TODO Report this error to us!
+    reportMessage('User not found for notification.', 'error', { userId });
 
     throw new Error(`User not found: ${userId}`);
   }
@@ -89,7 +92,7 @@ export const sendNotificationToUser = async (
 
         logger.warn({ userId }, 'User does not have a phone number');
 
-        //TODO Report this error to us!
+        reportMessage('User does not have a phone number', 'warning', { userId });
 
         // Ignore this user and continue with the next channel
         continue;
@@ -126,7 +129,7 @@ export const sendNotificationToUser = async (
 
       logger.error({ channel }, 'Unknown notification channel, skipping.');
 
-      //TODO Report this error to us!
+      reportMessage('Unknown notification channel, skipping.', 'error', { channel });
     }
   }
 };
