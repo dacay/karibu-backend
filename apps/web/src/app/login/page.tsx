@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { useLogo } from "@/hooks/useLogo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
@@ -27,77 +31,60 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm rounded-lg border bg-white p-8 shadow-sm">
-        {/* Logo: light mode shows light logo, dark mode shows dark logo */}
-        <div className="mb-6 flex justify-center">
-          <Image
-            src={lightSrc}
-            alt="Logo"
-            width={120}
-            height={40}
-            className="block dark:hidden"
-            onError={onLightError}
-            priority
-          />
-          <Image
-            src={darkSrc}
-            alt="Logo"
-            width={120}
-            height={40}
-            className="hidden dark:block"
-            onError={onDarkError}
-            priority
-          />
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+      <Card className="w-full max-w-sm">
+        <CardContent className="px-8 pt-8 pb-8">
+          <div className="mb-6 flex justify-center">
+            <Image
+              src={lightSrc}
+              alt="Logo"
+              width={120}
+              height={40}
+              className="block dark:hidden"
+              onError={onLightError}
+              priority
+            />
+            <Image
+              src={darkSrc}
+              alt="Logo"
+              width={120}
+              height={40}
+              className="hidden dark:block"
+              onError={onDarkError}
+              priority
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
 
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-          >
-            {isLoading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-      </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
