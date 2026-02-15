@@ -14,7 +14,15 @@ initErrorReporter()
 const app = new Hono()
 
 // Apply logging middleware
-app.use('*', pinoLogger({ pino: logger }))
+// At debug level: logs method, url, status. At trace level: logs full headers too.
+app.use('*', pinoLogger({
+  pino: logger,
+  http: {
+    onReqBindings: (c) => ({ req: { method: c.req.method, url: c.req.path } }),
+    onResBindings: (c) => ({ res: { status: c.res.status } }),
+    onResLevel: (c) => c.error ? 'error' : 'trace',
+  },
+}))
 
 // Apply CORS middleware
 app.use('*', corsMiddleware())

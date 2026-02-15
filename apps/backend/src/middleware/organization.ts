@@ -30,7 +30,7 @@ export const organizationMiddleware = (): MiddlewareHandler => {
       }
 
       // Extract subdomain from host
-      // Examples: "acme.karibu.ai" -> "acme", "localhost:3000" -> "localhost"
+      // Examples: "acme.karibu.ai" -> "acme", "demo.localhost:3000" -> "demo"
       const subdomain = host.split('.')[0].split(':')[0];
 
       // Check if subdomain is valid

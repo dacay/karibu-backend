@@ -4,6 +4,8 @@ import { env } from './env.js'
 export const logger = pino({
   // Global log level
   level: env.LOG_LEVEL,
+  // Serialize Error objects properly
+  serializers: pino.stdSerializers,
   // Transport for logging
   transport:
     // Development mode: pretty-print logs with colors
