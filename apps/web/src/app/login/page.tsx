@@ -30,10 +30,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
-        <CardContent className="px-8 pt-8 pb-8">
-          <div className="mb-6 flex justify-center">
+        <CardContent className="px-8 pt-6 pb-8">
+          <div className="mb-3 flex justify-center">
             <Image
               src={lightSrc}
               alt="Logo"
@@ -52,6 +52,11 @@ export default function LoginPage() {
               onError={onDarkError}
               priority
             />
+          </div>
+
+          <div className="mb-5 text-center">
+            <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
+            <p className="mt-1 text-sm text-muted-foreground">For organization administrators only</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
