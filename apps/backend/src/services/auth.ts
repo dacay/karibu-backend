@@ -55,6 +55,14 @@ export const loginWithPassword = async (
       return { success: false, error: 'Invalid email or password' };
     }
 
+    // Only admin users can log in with email/password
+    if (user.role !== 'admin') {
+
+      logger.debug({ userId: user.id, email }, 'Login attempt by non-admin user via email/password.');
+
+      return { success: false, error: 'Invalid email or password' };
+    }
+
     // Verify password
     const isValid = await verifyPassword(password, user.password);
 
@@ -98,7 +106,7 @@ export const loginWithPassword = async (
 
   } catch (error) {
 
-    logger.error({ error, email }, 'Login with password failed.');
+    logger.debug({ err: error, email }, 'Login with password failed.');
 
     return { success: false, error: 'Authentication failed' };
   }
