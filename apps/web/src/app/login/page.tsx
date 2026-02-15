@@ -22,10 +22,10 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      await login({ email, password });
+      await login({ email: email.trim(), password: password.trim() });
       router.replace("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError("Invalid email or password.");
     }
   }
 
