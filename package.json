@@ -2,6 +2,7 @@
   "name": "karibu",
   "private": true,
   "scripts": {
-    "dev:backend": "pnpm --filter karibu-backend dev"
+    "dev:backend": "pnpm --filter karibu-backend dev",
+    "dev:web": "pnpm --filter karibu-web dev"
   }
 }
