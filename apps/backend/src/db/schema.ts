@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, pgEnum, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, pgEnum, jsonb, integer } from 'drizzle-orm/pg-core';
 
 // Role enum
 export const roleEnum = pgEnum('role', ['admin', 'user']);
@@ -60,4 +60,43 @@ export const authTokens = pgTable('auth_tokens', {
   expiresAt: timestamp('expires_at').notNull(),
   lastUsedAt: timestamp('last_used_at'), // Track last time the token was used
   createdAt: timestamps.createdAt,
+});
+
+// Microlearning sequences table
+export const microlearningSequences = pgTable('microlearning_sequences', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  ...timestamps,
+});
+
+// Microlearnings table
+export const microlearnings = pgTable('microlearnings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  sequenceId: uuid('sequence_id').references(() => microlearningSequences.id, { onDelete: 'cascade' }),
+  position: integer('position'),
+  ...timestamps,
+});
+
+// Microlearning sequence assignments table - assigns a sequence to a user
+export const microlearningSequenceAssignments = pgTable('microlearning_sequence_assignments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sequenceId: uuid('sequence_id').notNull().references(() => microlearningSequences.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamps.createdAt,
+});
+
+// Microlearning progress table - tracks user interaction with a microlearning
+export const microlearningProgressStatusEnum = pgEnum('microlearning_progress_status', ['active', 'completed', 'expired']);
+
+export const microlearningProgress = pgTable('microlearning_progress', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  microlearningId: uuid('microlearning_id').notNull().references(() => microlearnings.id, { onDelete: 'cascade' }),
+  status: microlearningProgressStatusEnum('status').notNull().default('active'),
+  openedAt: timestamp('opened_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
+  expiredAt: timestamp('expired_at'),
 });
