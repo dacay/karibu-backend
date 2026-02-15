@@ -20,22 +20,22 @@ const DEV_LEARNER_TOKEN = 'dev-learner-token';
 async function seed() {
   console.log('Seeding development data...');
 
-  // Create organization
-  const [org] = await db
+  // Create organization or get existing
+  const [existingOrg] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.subdomain, 'demo'))
+    .limit(1);
+
+  const org = existingOrg ?? (await db
     .insert(organizations)
     .values({ name: 'Karibu Demo', subdomain: 'demo' })
-    .onConflictDoNothing()
-    .returning();
+    .returning()
+    .then(([r]) => r));
 
-  if (!org) {
-    console.log('Organization "demo" already exists, skipping user creation.');
-    await client.end();
-    return;
-  }
+  console.log(`Organization: ${org.name} (subdomain: ${org.subdomain})`);
 
-  console.log(`Created organization: ${org.name} (subdomain: ${org.subdomain})`);
-
-  // Create org admin user
+  // Upsert admin user
   const adminPassword = await hashPassword('admin123');
   const [admin] = await db
     .insert(users)
@@ -45,11 +45,15 @@ async function seed() {
       role: 'admin',
       organizationId: org.id,
     })
+    .onConflictDoUpdate({
+      target: users.email,
+      set: { password: adminPassword },
+    })
     .returning();
 
-  console.log(`Created admin user: ${admin.email} (password: admin123)`);
+  console.log(`Admin user: ${admin.email} (password: admin123)`);
 
-  // Create learner user
+  // Upsert learner user
   const learnerPassword = await hashPassword('learner123');
   const [learner] = await db
     .insert(users)
@@ -59,11 +63,15 @@ async function seed() {
       role: 'user',
       organizationId: org.id,
     })
+    .onConflictDoUpdate({
+      target: users.email,
+      set: { password: learnerPassword },
+    })
     .returning();
 
-  console.log(`Created learner user: ${learner.email} (password: learner123)`);
+  console.log(`Learner user: ${learner.email} (password: learner123)`);
 
-  // Create a static dev login token for the learner (never expires)
+  // Upsert dev login token for learner
   await db
     .insert(authTokens)
     .values({
@@ -77,7 +85,7 @@ async function seed() {
   console.log('  Organization subdomain: demo');
   console.log('  Admin:   admin@demo.com   / admin123');
   console.log('  Learner: learner@demo.com / learner123');
-  console.log(`  Learner token login: POST /auth/login { "token": "${DEV_LEARNER_TOKEN}" }`);
+  console.log(`  Learner token: "${DEV_LEARNER_TOKEN}"`);
 
   await client.end();
 }
