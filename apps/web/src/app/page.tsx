@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminRoot } from "@/features/admin";
 import { LearnerRoot } from "@/features/learner";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -19,7 +20,7 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-gray-500">Loading…</p>
+        <Spinner className="size-8" />
       </div>
     );
   }

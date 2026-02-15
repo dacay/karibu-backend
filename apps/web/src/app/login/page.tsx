@@ -9,23 +9,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function LoginPage() {
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
   const { lightSrc, darkSrc, onLightError, onDarkError } = useLogo();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setIsPending(true);
     try {
       await login({ email: email.trim(), password: password.trim() });
       router.replace("/");
     } catch (err) {
       setError("Invalid email or password.");
+      setIsPending(false);
     }
   }
 
@@ -84,8 +88,9 @@ export default function LoginPage() {
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? "Signing in…" : "Sign in"}
+            <Button type="submit" disabled={isPending} className="w-full">
+              {isPending && <Spinner className="mr-2" />}
+              {isPending ? "Signing in…" : "Sign in"}
             </Button>
           </form>
         </CardContent>
