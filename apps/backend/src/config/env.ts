@@ -36,6 +36,10 @@ const envSchema = z.object({
 
   // Error Reporting (Sentry)
   SENTRY_DSN: z.string().url().optional(),
+
+  // AI / LLM
+  OPENAI_API_KEY: z.string().min(1),
+  ELEVENLABS_API_KEY: z.string().min(1).optional(),
 })
 
 const parseEnv = () => {

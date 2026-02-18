@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, pgEnum, jsonb, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, pgEnum, jsonb, integer, index } from 'drizzle-orm/pg-core';
 
 // Role enum
 export const roleEnum = pgEnum('role', ['admin', 'user']);
@@ -100,3 +100,29 @@ export const microlearningProgress = pgTable('microlearning_progress', {
   completedAt: timestamp('completed_at'),
   expiredAt: timestamp('expired_at'),
 });
+
+// Chat type enum
+export const chatTypeEnum = pgEnum('chat_type', ['microlearning', 'discussion']);
+
+// Chats table - AI conversation sessions
+export const chats = pgTable('chats', {
+  id: text('id').primaryKey(), // client-generated UUID (passed from useChat)
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  type: chatTypeEnum('type').notNull(),
+  microlearningId: uuid('microlearning_id').references(() => microlearnings.id, { onDelete: 'set null' }),
+  ...timestamps,
+}, (table) => [
+  index('chats_user_id_idx').on(table.userId),
+]);
+
+// Chat messages table - individual messages in AI SDK UIMessage format
+export const chatMessages = pgTable('chat_messages', {
+  id: text('id').primaryKey(), // server-generated via createIdGenerator
+  chatId: text('chat_id').notNull().references(() => chats.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(), // 'user' | 'assistant' | 'system'
+  parts: jsonb('parts').notNull(), // UIMessage parts array
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('chat_messages_chat_id_idx').on(table.chatId),
+]);
