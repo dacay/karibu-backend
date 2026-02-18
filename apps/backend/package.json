@@ -15,6 +15,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.29",
     "@hono/node-server": "^1.19.9",
+    "@hono/zod-validator": "^0.7.6",
     "@mastra/core": "^1.4.0",
     "@sentry/node": "^10.38.0",
     "ai": "^6.0.89",

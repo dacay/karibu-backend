@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { streamText, type UIMessage, createIdGenerator, convertToModelMessages } from 'ai';
 import { z } from 'zod';
+import { zValidator } from '@hono/zod-validator';
 import { authMiddleware } from '../middleware/auth.js';
 import { openai } from '../ai/mastra.js';
 import { saveChat } from '../services/chat.js';
@@ -36,20 +37,10 @@ const mlChatSchema = z.object({
  * Streaming chat endpoint for microlearning conversations.
  * Compatible with the useChat hook from the Vercel AI SDK.
  */
-chat.post('/ml', async (c) => {
+chat.post('/ml', zValidator('json', mlChatSchema), async (c) => {
 
-  const body = await c.req.json();
-  const parsed = mlChatSchema.safeParse(body);
-
-  if (!parsed.success) {
-
-    logger.debug({ issues: parsed.error.issues }, 'Invalid /chat/ml request body.');
-
-    return c.json({ error: 'Invalid request body', details: parsed.error.issues }, 400);
-  }
-
-  const { chatId } = parsed.data;
-  const messages = parsed.data.messages as UIMessage[];
+  const { chatId } = c.req.valid('json');
+  const messages = c.req.valid('json').messages as UIMessage[];
 
   // Get auth context
   const auth = c.get('auth');
