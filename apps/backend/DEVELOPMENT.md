@@ -101,62 +101,14 @@ Required variables (see `.env.example`):
 
 ## Code Style Conventions
 
-- **No emojis** in code or logs
-- **Logging convention**: Use `...` for ongoing states, `.` for completed actions
+See [CONVENTIONS.md](../../CONVENTIONS.md) for the general style guide.
+
+@../../CONVENTIONS.md
+
+### Backend-Specific Conventions
+
 - **TypeScript**: Strict mode enabled, all imports must use `.js` extensions
 - **Error handling**: Use Pino's structured logging with error context: `logger.error({ error }, 'message')`
-- **Semicolons**: Use semicolons on statements (imports, variable declarations, returns), but NOT on closing braces of function bodies
-  ```typescript
-  // Good
-  import { foo } from './bar.js';
-
-  const value = 42;
-
-  export const myFunction = () => {
-
-    return value;
-  }
-
-  // Bad - semicolon on closing brace
-  export const myFunction = () => {
-
-    return value;
-  };
-  ```
-- **Block spacing**: Always add blank lines inside code blocks (functions, if statements, callbacks), but NOT inside object literals
-  ```typescript
-  // Good - functions and blocks
-  if (condition) {
-
-    doSomething()
-  }
-
-  function example() {
-
-    return value
-  }
-
-  // Good - objects (no initial blank line)
-  const obj = {
-    foo: 'bar',
-    baz: 'qux',
-  };
-
-  return c.json({
-    status: 'ok',
-  });
-
-  // Bad - no spacing in function
-  if (condition) {
-    doSomething()
-  }
-
-  // Bad - blank line in object
-  const obj = {
-
-    foo: 'bar',
-  };
-  ```
 
 ## AI Assistant Notes
 

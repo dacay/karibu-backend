@@ -43,3 +43,4 @@ dist/
 *.md
 !DEVELOPMENT.md
 !README.md
+!CONVENTIONS.md
