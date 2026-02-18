@@ -77,8 +77,8 @@ export function AdminRoot() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar">
-        <div className="flex h-14 items-center px-5 border-b border-sidebar-border">
+      <aside className="flex w-56 shrink-0 flex-col border-r bg-sidebar">
+        <div className="flex h-[4.5rem] items-center px-5 border-b border-sidebar-border">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -118,7 +118,7 @@ export function AdminRoot() {
                 key={id}
                 onClick={() => setActiveSection(id)}
                 className={[
-                  "flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -136,11 +136,7 @@ export function AdminRoot() {
       {/* Main content */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Top bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
-          <p className="text-sm font-medium text-foreground">
-            {NAV_ITEMS.find((n) => n.id === activeSection)?.label}
-          </p>
-
+        <header className="flex h-14 shrink-0 items-center justify-end border-b px-6">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 h-9 px-2">
