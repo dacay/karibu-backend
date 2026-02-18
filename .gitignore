@@ -29,6 +29,7 @@ lerna-debug.log*
 # build
 dist/
 .next/
+*.tsbuildinfo
 
 # drizzle
 .drizzle/
