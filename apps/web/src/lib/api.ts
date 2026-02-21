@@ -26,7 +26,38 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(
-      (body as { message?: string }).message ?? `Request failed: ${res.status}`
+      (body as { message?: string; error?: string }).message ??
+      (body as { message?: string; error?: string }).error ??
+      `Request failed: ${res.status}`
+    );
+  }
+
+  return res.json() as Promise<T>;
+}
+
+async function upload<T>(path: string, formData: FormData): Promise<T> {
+  const token = getToken();
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (res.status === 401 && typeof window !== "undefined") {
+    localStorage.removeItem("karibu_token");
+    localStorage.removeItem("karibu_user");
+    window.location.href = "/login";
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(
+      (body as { message?: string; error?: string }).message ??
+      (body as { message?: string; error?: string }).error ??
+      `Request failed: ${res.status}`
     );
   }
 
@@ -46,6 +77,21 @@ export interface LoginResponse {
   };
 }
 
+export interface Document {
+  id: string;
+  organizationId: string;
+  uploadedBy: string;
+  name: string;
+  s3Key: string;
+  s3Bucket: string;
+  mimeType: string;
+  sizeBytes: number;
+  status: "uploaded" | "processing" | "processed" | "failed";
+  chromaDocumentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ----- Namespaced API client -----
 
 export const api = {
@@ -55,5 +101,16 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+  },
+  documents: {
+    list: () =>
+      request<{ documents: Document[] }>("/documents"),
+    upload: (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return upload<{ document: Document }>("/documents/upload", formData);
+    },
+    delete: (id: string) =>
+      request<{ success: boolean }>(`/documents/${id}`, { method: "DELETE" }),
   },
 };

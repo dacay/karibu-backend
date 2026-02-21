@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Dna,
@@ -70,7 +70,10 @@ function getInitials(email: string): string {
 export function AdminRoot() {
   const { user, logout } = useAuth();
   const { lightSrc, darkSrc, onLightError, onDarkError } = useLogo();
-  const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const activeSection: SectionId = NAV_ITEMS.find((item) => item.id !== "dashboard" && `/${item.id}` === pathname)?.id ?? "dashboard";
 
   const initials = user?.email ? getInitials(user.email) : "?";
 
@@ -116,7 +119,7 @@ export function AdminRoot() {
             return (
               <button
                 key={id}
-                onClick={() => setActiveSection(id)}
+                onClick={() => router.push(id === "dashboard" ? "/" : `/${id}`)}
                 className={[
                   "flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
