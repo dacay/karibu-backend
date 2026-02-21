@@ -127,6 +127,54 @@ export const chatMessages = pgTable('chat_messages', {
   index('chat_messages_chat_id_idx').on(table.chatId),
 ]);
 
+// DNA enums
+export const dnaSourceEnum = pgEnum('dna_source', ['manual', 'discovered']);
+export const dnaStatusEnum = pgEnum('dna_status', ['suggested', 'active', 'rejected']);
+export const dnaSynthesisStatusEnum = pgEnum('dna_synthesis_status', ['idle', 'running', 'done', 'failed']);
+export const dnaApprovalEnum = pgEnum('dna_approval', ['pending', 'approved', 'rejected']);
+
+// DNA topics table - top-level knowledge domains
+export const dnaTopics = pgTable('dna_topics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  source: dnaSourceEnum('source').notNull().default('manual'),
+  status: dnaStatusEnum('status').notNull().default('active'),
+  ...timestamps,
+}, (table) => [
+  index('dna_topics_organization_id_idx').on(table.organizationId),
+]);
+
+// DNA subtopics table - specific aspects within a topic
+export const dnaSubtopics = pgTable('dna_subtopics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  topicId: uuid('topic_id').notNull().references(() => dnaTopics.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  source: dnaSourceEnum('source').notNull().default('manual'),
+  status: dnaStatusEnum('status').notNull().default('active'),
+  synthesisStatus: dnaSynthesisStatusEnum('synthesis_status').notNull().default('idle'),
+  lastSynthesizedAt: timestamp('last_synthesized_at'),
+  ...timestamps,
+}, (table) => [
+  index('dna_subtopics_topic_id_idx').on(table.topicId),
+  index('dna_subtopics_organization_id_idx').on(table.organizationId),
+]);
+
+// DNA values table - synthesized content for a subtopic, subject to human approval
+export const dnaValues = pgTable('dna_values', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  subtopicId: uuid('subtopic_id').notNull().references(() => dnaSubtopics.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  approval: dnaApprovalEnum('approval').notNull().default('pending'),
+  ...timestamps,
+}, (table) => [
+  index('dna_values_subtopic_id_idx').on(table.subtopicId),
+]);
+
 // Document status enum
 export const documentStatusEnum = pgEnum('document_status', ['uploaded', 'processing', 'processed', 'failed']);
 
