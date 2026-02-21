@@ -126,3 +126,23 @@ export const chatMessages = pgTable('chat_messages', {
 }, (table) => [
   index('chat_messages_chat_id_idx').on(table.chatId),
 ]);
+
+// Document status enum
+export const documentStatusEnum = pgEnum('document_status', ['uploaded', 'processing', 'processed', 'failed']);
+
+// Documents table - uploaded source documents for DNA calculation
+export const documents = pgTable('documents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  uploadedBy: uuid('uploaded_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(), // original filename
+  s3Key: text('s3_key').notNull(), // S3 object key
+  s3Bucket: text('s3_bucket').notNull(),
+  mimeType: text('mime_type').notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  status: documentStatusEnum('status').notNull().default('uploaded'),
+  chromaDocumentId: text('chroma_document_id'), // ChromaDB document ID once embedded
+  ...timestamps,
+}, (table) => [
+  index('documents_organization_id_idx').on(table.organizationId),
+]);
