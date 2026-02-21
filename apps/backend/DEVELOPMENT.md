@@ -19,6 +19,8 @@ Karibu Backend is a TypeScript API server built with **Hono** (lightweight web f
 - `pnpm db:push` - Push schema changes directly without migrations (development only)
 - `pnpm db:studio` - Open Drizzle Studio GUI for database exploration
 
+> **During development, always use `pnpm db:push`. Do not generate migrations until the initial production release.**
+
 ### Type Checking
 - `pnpm tsc --noEmit` - Run TypeScript type checking without building
 
@@ -109,6 +111,38 @@ See [CONVENTIONS.md](../../CONVENTIONS.md) for the general style guide.
 
 - **TypeScript**: Strict mode enabled, all imports must use `.js` extensions
 - **Error handling**: Use Pino's structured logging with error context: `logger.error({ error }, 'message')`
+
+## S3 Document Storage
+
+### Key Structure
+S3 keys follow the pattern: `{S3_KEY_PREFIX}/{organizationId}/{documentId}.{ext}`
+
+- **organizationId (UUID) is used as the folder prefix**, not the subdomain. Subdomains are mutable — if an org changes their subdomain, all existing S3 keys stored in the DB would become stale. UUIDs are immutable.
+- `S3_KEY_PREFIX` is optional (defaults to empty). It strips leading/trailing slashes automatically, so `documents/`, `/documents`, and `documents` all produce the same result.
+- The bucket is dedicated to documents, so no `documents/` prefix is added by default in code.
+
+### AWS IAM — Minimal Policy
+The backend IAM user only needs:
+```json
+{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["kms:GenerateDataKey", "kms:Decrypt"],
+      "Resource": "arn:aws:kms:REGION:ACCOUNT_ID:key/KEY_ID"
+    }
+  ]
+}
+```
+Note: KMS permissions must reference the KMS key ARN, not the S3 bucket ARN.
+
+### ChromaDB Pipeline
+The ChromaDB service (`src/services/chromadb.ts`) is fully built with `addDocumentChunks`, `deleteDocumentChunks`, and `queryDocuments`, but is **not yet wired into the document upload route**. Documents are uploaded to S3 and recorded in the DB with status `uploaded` — parsing, chunking, and embedding into ChromaDB still need to be connected.
 
 ## AI Assistant Notes
 
