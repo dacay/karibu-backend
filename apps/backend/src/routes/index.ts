@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import health from './health.js';
 import auth from './auth.js';
 import chat from './chat.js';
+import documents from './documents.js';
 import { organizationMiddleware } from '../middleware/organization.js';
 
 export const registerRoutes = (app: Hono) => {
@@ -17,4 +18,7 @@ export const registerRoutes = (app: Hono) => {
 
   // Chat routes (auth middleware applied inside chat router)
   app.route('/chat', chat);
+
+  // Document upload and management routes
+  app.route('/documents', documents);
 }

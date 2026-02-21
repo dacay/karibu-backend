@@ -5,6 +5,15 @@
 - **No emojis** in code or logs
 - **Logging**: Use `...` for ongoing states (e.g., "Server is running..."), `.` for completed actions (e.g., "Database connection failed.")
 
+## Log Levels
+
+Choose carefully to keep production logs meaningful and small:
+
+- `error` — something went wrong and the system is likely in a bad state
+- `warn` — something might be broken but we are not sure
+- `info` — an important business event that we should know about in production (e.g. document uploaded, user created)
+- `debug` — extra information useful when actively debugging; use this by default for routine operations (cache hits, middleware steps, auth failures from bots, etc.)
+
 ## Semicolons
 
 Use semicolons on statements (imports, variable declarations, returns), but NOT on closing braces of function bodies:

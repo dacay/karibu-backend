@@ -40,6 +40,18 @@ const envSchema = z.object({
   // AI / LLM
   OPENAI_API_KEY: z.string().min(1),
   ELEVENLABS_API_KEY: z.string().min(1).optional(),
+
+  // AWS S3 (Document Storage)
+  AWS_REGION: z.string().min(1).optional(),
+  AWS_ACCESS_KEY_ID: z.string().min(1).optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  S3_BUCKET_NAME: z.string().min(1).optional(),
+  S3_MAX_UPLOAD_SIZE_MB: z.string().default('20').transform(Number),
+  S3_KEY_PREFIX: z.string().default('').transform((val) => val.replace(/^\/+|\/+$/g, '')),
+
+  // ChromaDB (Vector Database)
+  CHROMA_URL: z.string().url().default('http://localhost:8000'),
+  CHROMA_COLLECTION_NAME: z.string().min(1).default('karibu-documents'),
 })
 
 const parseEnv = () => {

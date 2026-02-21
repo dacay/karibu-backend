@@ -1,0 +1,142 @@
+import { ChromaClient, type Collection } from 'chromadb';
+import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+
+let chromaClient: ChromaClient | null = null;
+let documentCollection: Collection | null = null;
+
+const getChromaClient = (): ChromaClient => {
+
+  if (chromaClient) return chromaClient;
+
+  chromaClient = new ChromaClient({ path: env.CHROMA_URL });
+
+  return chromaClient;
+}
+
+/**
+ * Get or create the documents collection in ChromaDB.
+ * Uses the collection name from config.
+ */
+export const getDocumentCollection = async (): Promise<Collection> => {
+
+  if (documentCollection) return documentCollection;
+
+  const client = getChromaClient();
+
+  documentCollection = await client.getOrCreateCollection({
+    name: env.CHROMA_COLLECTION_NAME,
+    metadata: { description: 'Karibu organization documents for DNA calculation' },
+  });
+
+  logger.info({ collection: env.CHROMA_COLLECTION_NAME }, 'ChromaDB collection ready.');
+
+  return documentCollection;
+}
+
+export interface AddDocumentChunksParams {
+  documentId: string;
+  organizationId: string;
+  chunks: string[];
+  filename: string;
+}
+
+/**
+ * Add document text chunks to ChromaDB.
+ * Each chunk is stored with metadata for filtering by organization/document.
+ */
+export const addDocumentChunks = async ({
+  documentId,
+  organizationId,
+  chunks,
+  filename,
+}: AddDocumentChunksParams): Promise<string[]> => {
+
+  const collection = await getDocumentCollection();
+
+  const ids = chunks.map((_, i) => `${documentId}_chunk_${i}`);
+
+  const metadatas = chunks.map(() => ({
+    documentId,
+    organizationId,
+    filename,
+    addedAt: new Date().toISOString(),
+  }));
+
+  await collection.add({
+    ids,
+    documents: chunks,
+    metadatas,
+  });
+
+  logger.info({ documentId, chunkCount: chunks.length }, 'Document chunks added to ChromaDB.');
+
+  return ids;
+}
+
+/**
+ * Delete all chunks for a given document from ChromaDB.
+ */
+export const deleteDocumentChunks = async (documentId: string): Promise<void> => {
+
+  const collection = await getDocumentCollection();
+
+  await collection.delete({
+    where: { documentId },
+  });
+
+  logger.info({ documentId }, 'Document chunks deleted from ChromaDB.');
+}
+
+export interface QueryResult {
+  ids: string[];
+  documents: (string | null)[];
+  distances: number[] | null;
+  metadatas: (Record<string, string> | null)[];
+}
+
+/**
+ * Query the documents collection for chunks relevant to a query string.
+ * Optionally filter by organizationId to scope results to a tenant.
+ */
+export const queryDocuments = async (
+  queryText: string,
+  organizationId: string,
+  nResults = 10
+): Promise<QueryResult> => {
+
+  const collection = await getDocumentCollection();
+
+  const results = await collection.query({
+    queryTexts: [queryText],
+    nResults,
+    where: { organizationId },
+  });
+
+  return {
+    ids: results.ids[0] ?? [],
+    documents: results.documents[0] ?? [],
+    distances: results.distances?.[0] ?? null,
+    metadatas: (results.metadatas[0] ?? []) as (Record<string, string> | null)[],
+  };
+}
+
+/**
+ * Check connectivity to ChromaDB by listing collections.
+ */
+export const checkChromaConnection = async (): Promise<boolean> => {
+
+  try {
+
+    const client = getChromaClient();
+    await client.listCollections();
+
+    return true;
+
+  } catch (error) {
+
+    logger.warn({ error }, 'ChromaDB connection check failed.');
+
+    return false;
+  }
+}
