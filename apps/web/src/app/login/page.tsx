@@ -36,8 +36,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
-        <CardContent className="px-8 pt-6 pb-8">
-          <div className="mb-3 flex justify-center">
+        <CardContent className="px-8 pt-8 pb-8">
+          <div className="mb-6 flex justify-center">
             <Image
               src={lightSrc}
               alt="Logo"

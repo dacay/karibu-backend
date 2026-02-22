@@ -55,6 +55,43 @@ async function upload<T>(path: string, formData: FormData): Promise<T> {
 
 // ----- Types -----
 
+export interface DnaValue {
+  id: string;
+  subtopicId: string;
+  organizationId: string;
+  content: string;
+  approval: "pending" | "approved" | "rejected";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DnaSubtopic {
+  id: string;
+  topicId: string;
+  organizationId: string;
+  name: string;
+  description: string;
+  source: "manual" | "discovered";
+  status: "suggested" | "active" | "rejected";
+  synthesisStatus: "idle" | "running" | "done" | "failed";
+  lastSynthesizedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  values: DnaValue[];
+}
+
+export interface DnaTopic {
+  id: string;
+  organizationId: string;
+  name: string;
+  description: string;
+  source: "manual" | "discovered";
+  status: "suggested" | "active" | "rejected";
+  createdAt: string;
+  updatedAt: string;
+  subtopics: DnaSubtopic[];
+}
+
 export interface LoginResponse {
   token: string;
   user: {
@@ -101,5 +138,44 @@ export const api = {
     },
     delete: (id: string) =>
       request<{ success: boolean }>(`/documents/${id}`, { method: "DELETE" }),
+  },
+  dna: {
+    list: () =>
+      request<{ topics: DnaTopic[] }>("/dna"),
+    createTopic: (body: { name: string; description: string }) =>
+      request<{ topic: DnaTopic }>("/dna/topics", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    updateTopic: (id: string, body: { name?: string; description?: string }) =>
+      request<{ topic: DnaTopic }>(`/dna/topics/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    deleteTopic: (id: string) =>
+      request<{ success: boolean }>(`/dna/topics/${id}`, { method: "DELETE" }),
+    createSubtopic: (topicId: string, body: { name: string; description: string }) =>
+      request<{ subtopic: DnaSubtopic }>(`/dna/topics/${topicId}/subtopics`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    updateSubtopic: (id: string, body: { name?: string; description?: string }) =>
+      request<{ subtopic: DnaSubtopic }>(`/dna/subtopics/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    deleteSubtopic: (id: string) =>
+      request<{ success: boolean }>(`/dna/subtopics/${id}`, { method: "DELETE" }),
+    synthesize: (subtopicId: string) =>
+      request<{ success: boolean; valueCount: number }>(`/dna/subtopics/${subtopicId}/synthesize`, {
+        method: "POST",
+      }),
+    updateValueApproval: (id: string, approval: "approved" | "rejected") =>
+      request<{ value: DnaValue }>(`/dna/values/${id}/approval`, {
+        method: "PATCH",
+        body: JSON.stringify({ approval }),
+      }),
+    deleteValue: (id: string) =>
+      request<{ success: boolean }>(`/dna/values/${id}`, { method: "DELETE" }),
   },
 };
