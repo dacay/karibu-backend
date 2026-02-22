@@ -85,6 +85,22 @@ export const deleteFromS3 = async (key: string): Promise<void> => {
 }
 
 /**
+ * Download a file from S3 and return it as a Buffer.
+ */
+export const downloadFromS3 = async (key: string): Promise<Buffer> => {
+  const client = getS3Client();
+  const bucket = getS3BucketName();
+  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+  const response = await client.send(command);
+  if (!response.Body) throw new Error(`S3 object has no body: ${key}`);
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+/**
  * Generate a presigned URL for temporary read access to an S3 object.
  * Expires in 1 hour by default.
  */

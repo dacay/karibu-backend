@@ -1,15 +1,20 @@
-import { ChromaClient, type Collection } from 'chromadb';
+import { CloudClient, type Collection, type EmbeddingFunction } from 'chromadb';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
+import { embedText, embedTexts } from './embeddings.js';
 
-let chromaClient: ChromaClient | null = null;
+let chromaClient: CloudClient | null = null;
 let documentCollection: Collection | null = null;
 
-const getChromaClient = (): ChromaClient => {
+const getChromaClient = (): CloudClient => {
 
   if (chromaClient) return chromaClient;
 
-  chromaClient = new ChromaClient({ path: env.CHROMA_URL });
+  chromaClient = new CloudClient({
+    apiKey: env.CHROMA_API_KEY,
+    tenant: env.CHROMA_TENANT,
+    database: env.CHROMA_DATABASE,
+  });
 
   return chromaClient;
 }
@@ -24,8 +29,13 @@ export const getDocumentCollection = async (): Promise<Collection> => {
 
   const client = getChromaClient();
 
+  const embeddingFunction: EmbeddingFunction = {
+    generate: (texts: string[]) => embedTexts(texts),
+  };
+
   documentCollection = await client.getOrCreateCollection({
     name: env.CHROMA_COLLECTION_NAME,
+    embeddingFunction,
     metadata: { description: 'Karibu organization documents for DNA calculation' },
   });
 
@@ -38,17 +48,19 @@ export interface AddDocumentChunksParams {
   documentId: string;
   organizationId: string;
   chunks: string[];
+  embeddings: number[][];
   filename: string;
 }
 
 /**
- * Add document text chunks to ChromaDB.
+ * Add document text chunks to ChromaDB with pre-computed embeddings.
  * Each chunk is stored with metadata for filtering by organization/document.
  */
 export const addDocumentChunks = async ({
   documentId,
   organizationId,
   chunks,
+  embeddings,
   filename,
 }: AddDocumentChunksParams): Promise<string[]> => {
 
@@ -66,6 +78,7 @@ export const addDocumentChunks = async ({
   await collection.add({
     ids,
     documents: chunks,
+    embeddings,
     metadatas,
   });
 
@@ -91,7 +104,7 @@ export const deleteDocumentChunks = async (documentId: string): Promise<void> =>
 export interface QueryResult {
   ids: string[];
   documents: (string | null)[];
-  distances: number[] | null;
+  distances: (number | null)[] | null;
   metadatas: (Record<string, string> | null)[];
 }
 
@@ -107,8 +120,10 @@ export const queryDocuments = async (
 
   const collection = await getDocumentCollection();
 
+  const queryEmbedding = await embedText(queryText);
+
   const results = await collection.query({
-    queryTexts: [queryText],
+    queryEmbeddings: [queryEmbedding],
     nResults,
     where: { organizationId },
   });
@@ -133,9 +148,9 @@ export const checkChromaConnection = async (): Promise<boolean> => {
 
     return true;
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.warn({ error }, 'ChromaDB connection check failed.');
+    logger.warn({ err }, 'ChromaDB connection check failed.');
 
     return false;
   }

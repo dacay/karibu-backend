@@ -3,6 +3,7 @@ import health from './health.js';
 import auth from './auth.js';
 import chat from './chat.js';
 import documents from './documents.js';
+import dna from './dna.js';
 import { organizationMiddleware } from '../middleware/organization.js';
 
 export const registerRoutes = (app: Hono) => {
@@ -21,4 +22,7 @@ export const registerRoutes = (app: Hono) => {
 
   // Document upload and management routes
   app.route('/documents', documents);
+
+  // DNA topics, subtopics, and values routes
+  app.route('/dna', dna);
 }

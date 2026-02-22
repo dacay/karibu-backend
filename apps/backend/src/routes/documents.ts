@@ -4,6 +4,8 @@ import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
 import { uploadToS3, deleteFromS3, buildDocumentKey } from '../services/s3.js';
+import { processDocument } from '../services/document-processor.js';
+import { deleteDocumentChunks } from '../services/chromadb.js';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
 
@@ -89,14 +91,17 @@ documentsRouter.post('/upload', requireRole('admin'), async (c) => {
 
     logger.info({ documentId: updated.id, organizationId: auth.organizationId }, 'Document uploaded.');
 
+    // Fire-and-forget: processDocument never throws
+    void processDocument(updated);
+
     return c.json({ document: updated }, 201);
 
-  } catch (error) {
+  } catch (err) {
 
     // Clean up the DB record if S3 upload failed
     await db.delete(documents).where(eq(documents.id, document.id));
 
-    logger.error({ error, documentId: document.id }, 'S3 upload failed.');
+    logger.error({ err, documentId: document.id }, 'S3 upload failed.');
 
     return c.json({ error: 'Failed to upload file. Please try again.' }, 500);
   }
@@ -152,9 +157,18 @@ documentsRouter.delete('/:id', requireRole('admin'), async (c) => {
       await deleteFromS3(document.s3Key);
     }
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.warn({ error, documentId: id }, 'Failed to delete document from S3, proceeding with DB deletion.');
+    logger.warn({ err, documentId: id }, 'Failed to delete document from S3, proceeding with DB deletion.');
+  }
+
+  // Delete ChromaDB chunks (best-effort — only if document was processed)
+  if (document.chromaDocumentId) {
+    try {
+      await deleteDocumentChunks(id);
+    } catch (err) {
+      logger.warn({ err, documentId: id }, 'Failed to delete document chunks from ChromaDB, proceeding with DB deletion.');
+    }
   }
 
   await db.delete(documents).where(eq(documents.id, id));

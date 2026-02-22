@@ -39,6 +39,7 @@ const envSchema = z.object({
 
   // AI / LLM
   OPENAI_API_KEY: z.string().min(1),
+  OPENAI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
   ELEVENLABS_API_KEY: z.string().min(1).optional(),
 
   // AWS S3 (Document Storage)
@@ -49,8 +50,15 @@ const envSchema = z.object({
   S3_MAX_UPLOAD_SIZE_MB: z.string().default('20').transform(Number),
   S3_KEY_PREFIX: z.string().default('').transform((val) => val.replace(/^\/+|\/+$/g, '')),
 
-  // ChromaDB (Vector Database)
-  CHROMA_URL: z.string().url().default('http://localhost:8000'),
+  // DNA Synthesis
+  DNA_SYNTHESIS_MIN_VALUES: z.string().default('5').transform(Number),
+  DNA_SYNTHESIS_MAX_VALUES: z.string().default('10').transform(Number),
+  DNA_SYNTHESIS_MAX_WORDS_PER_VALUE: z.string().default('50').transform(Number),
+
+  // ChromaDB Cloud (Vector Database)
+  CHROMA_API_KEY: z.string().min(1),
+  CHROMA_TENANT: z.string().min(1),
+  CHROMA_DATABASE: z.string().min(1),
   CHROMA_COLLECTION_NAME: z.string().min(1).default('karibu-documents'),
 })
 
