@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, asc } from 'drizzle-orm';
 import { generateText } from 'ai';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { db } from '../db/index.js';
@@ -34,7 +34,8 @@ dnaRouter.get('/', requireRole('admin'), async (c) => {
   const values = await db
     .select()
     .from(dnaValues)
-    .where(eq(dnaValues.organizationId, auth.organizationId));
+    .where(eq(dnaValues.organizationId, auth.organizationId))
+    .orderBy(asc(dnaValues.createdAt), asc(dnaValues.id));
 
   // Build nested structure
   const result = topics.map((topic) => {

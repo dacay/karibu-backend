@@ -135,14 +135,14 @@ function ValueRow({ value }: { value: DnaValue }) {
   });
 
   return (
-    <div className="flex items-start gap-2 py-3 group">
+    <div className="flex items-start gap-2 px-4 pt-3 pb-2 group">
       <p className="flex-1 text-sm text-muted-foreground leading-snug">{value.content}</p>
       <div className="flex items-center gap-1 shrink-0">
         {approvalBadge(value.approval)}
         <Button
           variant="ghost"
           size="icon"
-          className="size-6 text-muted-foreground hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity"
+          className={`size-6 text-muted-foreground hover:text-green-600 transition-opacity ${value.approval === "pending" ? "" : "opacity-0 group-hover:opacity-100"}`}
           disabled={approveMutation.isPending || value.approval === "approved"}
           onClick={() => approveMutation.mutate("approved")}
           aria-label="Approve"
@@ -152,7 +152,7 @@ function ValueRow({ value }: { value: DnaValue }) {
         <Button
           variant="ghost"
           size="icon"
-          className="size-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+          className={`size-6 text-muted-foreground hover:text-destructive transition-opacity ${value.approval === "pending" ? "" : "opacity-0 group-hover:opacity-100"}`}
           disabled={approveMutation.isPending || value.approval === "rejected"}
           onClick={() => approveMutation.mutate("rejected")}
           aria-label="Reject"
@@ -273,9 +273,18 @@ function SubtopicRow({ subtopic }: { subtopic: DnaSubtopic }) {
 
       {/* Values */}
       {subtopic.values.length > 0 && (
-        <div className="pl-2 border-l divide-y">
-          {subtopic.values.map((v) => <ValueRow key={v.id} value={v} />)}
-        </div>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="values" className="border-0">
+            <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline">
+              {subtopic.values.length} value{subtopic.values.length !== 1 ? "s" : ""}
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="border rounded-lg divide-y">
+                {subtopic.values.map((v) => <ValueRow key={v.id} value={v} />)}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       )}
     </div>
   );
@@ -601,7 +610,7 @@ export function DNASection() {
             </CardContent>
           </Card>
         ) : (
-          <Accordion type="multiple" className="space-y-1">
+          <Accordion type="multiple" defaultValue={topics.map((t) => t.id)} className="space-y-1">
             {topics.map((topic) => <TopicItem key={topic.id} topic={topic} />)}
           </Accordion>
         )}
