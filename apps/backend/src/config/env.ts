@@ -65,10 +65,10 @@ const envSchema = z.object({
   POSTMARK_API_KEY: z.string().min(1).optional(),
   POSTMARK_FROM: z.string().default('noreply@karibu.ai'),
 
-  // Frontend base URL used to build org-specific links.
-  // e.g. "https://karibu.ai" -> invitation link becomes "https://{subdomain}.karibu.ai/?token=..."
-  // For local dev use "http://localhost:3001" (subdomain prepending is skipped for localhost/IPs).
-  FRONTEND_URL: z.string().url().default('http://localhost:3001'),
+  // URL template for building org-scoped frontend links.
+  // Use {subdomain} as the placeholder: e.g. "https://{subdomain}.karibu.ai"
+  // For local dev omit the placeholder: e.g. "http://localhost:3001"
+  FRONTEND_URL_TEMPLATE: z.string().min(1).default('http://localhost:3001'),
 })
 
 const parseEnv = () => {

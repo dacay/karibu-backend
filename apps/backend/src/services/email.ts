@@ -5,26 +5,25 @@ import { logger } from '../config/logger.js';
 /**
  * Build a frontend URL scoped to a specific organization subdomain.
  *
- * For real domains (e.g. FRONTEND_URL="https://karibu.ai", subdomain="demo")
- *   → "https://demo.karibu.ai/?token=abc"
+ * Replaces the `{subdomain}` placeholder in FRONTEND_URL_TEMPLATE with the
+ * given subdomain.  If the template has no placeholder (e.g. localhost in dev)
+ * the subdomain is simply ignored.
  *
- * For localhost / IP addresses the subdomain is not prepended so local dev
- * works without wildcard DNS.
+ * Examples:
+ *   template "https://{subdomain}.karibu.ai", subdomain "demo"
+ *     → "https://demo.karibu.ai/?token=abc"
+ *   template "http://localhost:3001" (no placeholder)
+ *     → "http://localhost:3001/?token=abc"
  */
 export const buildOrgUrl = (
   subdomain: string,
   path: string = '/',
   params?: Record<string, string>
 ): string => {
-  const base = new URL(env.FRONTEND_URL);
-  const isLocalhost =
-    base.hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(base.hostname);
-
-  if (!isLocalhost) {
-    base.hostname = `${subdomain}.${base.hostname}`;
-  }
-
-  base.pathname = path;
+  const base = new URL(
+    path,
+    env.FRONTEND_URL_TEMPLATE.replace('{subdomain}', subdomain)
+  );
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -65,9 +64,8 @@ export const sendEmail = async (options: {
 
 /**
  * Send an invitation email to a new team member.
- *
- * The sign-in link is scoped to the organization's subdomain so it cannot be
- * reused on a different organization's domain.
+ * The sign-in link is built from FRONTEND_URL_TEMPLATE with the org subdomain
+ * substituted in, so it cannot be reused on a different organization's domain.
  */
 export const sendInvitationEmail = async (options: {
   to: string;
