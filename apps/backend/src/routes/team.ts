@@ -6,7 +6,7 @@ import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { db } from '../db/index.js';
 import { users, authTokens } from '../db/schema.js';
 import { hashPassword, generateLoginToken } from '../utils/crypto.js';
-import { sendInvitationEmail, buildInviteUrl } from '../services/email.js';
+import { sendInvitationEmail } from '../services/email.js';
 import { logger } from '../config/logger.js';
 
 const teamRouter = new Hono();
@@ -157,10 +157,13 @@ teamRouter.post('/invite', zValidator('json', inviteSchema), async (c) => {
         expiresAt,
       });
 
-      // Build sign-in URL and send invitation email
-      const signInUrl = buildInviteUrl(organization.subdomain, token);
-
-      await sendInvitationEmail(email, organization.name, signInUrl);
+      // Send invitation email with an org-scoped sign-in link
+      await sendInvitationEmail({
+        to: email,
+        organizationName: organization.name,
+        subdomain: organization.subdomain,
+        token,
+      });
 
       invited.push(email);
 
@@ -222,9 +225,12 @@ teamRouter.post('/:userId/resend-invite', async (c) => {
     return c.json({ error: 'No invitation token found for this user.' }, 404);
   }
 
-  const signInUrl = buildInviteUrl(organization.subdomain, latestToken.token);
-
-  await sendInvitationEmail(user.email, organization.name, signInUrl);
+  await sendInvitationEmail({
+    to: user.email,
+    organizationName: organization.name,
+    subdomain: organization.subdomain,
+    token: latestToken.token,
+  });
 
   logger.info({ userId, email: user.email }, 'Invitation email resent.');
 
@@ -278,9 +284,12 @@ teamRouter.post('/:userId/regenerate-token', async (c) => {
   });
 
   // Send fresh invitation email
-  const signInUrl = buildInviteUrl(organization.subdomain, token);
-
-  await sendInvitationEmail(user.email, organization.name, signInUrl);
+  await sendInvitationEmail({
+    to: user.email,
+    organizationName: organization.name,
+    subdomain: organization.subdomain,
+    token,
+  });
 
   logger.info({ userId, email: user.email }, 'Auth token regenerated and invitation email sent.');
 

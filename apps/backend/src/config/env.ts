@@ -61,16 +61,13 @@ const envSchema = z.object({
   CHROMA_DATABASE: z.string().min(1),
   CHROMA_COLLECTION_NAME: z.string().min(1).default('karibu-documents'),
 
-  // Email / SMTP (for invitation emails)
-  SMTP_HOST: z.string().min(1).optional(),
-  SMTP_PORT: z.string().default('587').transform(Number),
-  SMTP_SECURE: z.string().default('false').transform((val) => val === 'true'),
-  SMTP_USER: z.string().min(1).optional(),
-  SMTP_PASS: z.string().min(1).optional(),
-  SMTP_FROM: z.string().default('noreply@karibu.ai'),
+  // Postmark (transactional email)
+  POSTMARK_API_KEY: z.string().min(1).optional(),
+  POSTMARK_FROM: z.string().default('noreply@karibu.ai'),
 
-  // Frontend URL used to build invitation sign-in links.
-  // e.g. "https://karibu.ai" -> link becomes "https://{subdomain}.karibu.ai/?token=..."
+  // Frontend base URL used to build org-specific links.
+  // e.g. "https://karibu.ai" -> invitation link becomes "https://{subdomain}.karibu.ai/?token=..."
+  // For local dev use "http://localhost:3001" (subdomain prepending is skipped for localhost/IPs).
   FRONTEND_URL: z.string().url().default('http://localhost:3001'),
 })
 
