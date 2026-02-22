@@ -4,7 +4,7 @@ import { db } from '../db/index.js';
 import { chats, chatMessages } from '../db/schema.js';
 import { logger } from '../config/logger.js';
 
-type ChatType = 'microlearning' | 'discussion';
+type ChatType = 'microlearning' | 'discussion' | 'free';
 
 /**
  * Persist a chat and its messages after an AI response finishes.
