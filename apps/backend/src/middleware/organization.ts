@@ -71,9 +71,9 @@ export const organizationMiddleware = (): MiddlewareHandler => {
 
       await next();
 
-    } catch (error) {
+    } catch (err) {
 
-      logger.error({ error }, 'Organization middleware failed.');
+      logger.error({ err }, 'Organization middleware failed.');
 
       return c.json({ error: 'Internal server error' }, 500);
     }

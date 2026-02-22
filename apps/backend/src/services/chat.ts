@@ -64,11 +64,11 @@ export async function saveChat({
 
       logger.debug({ chatId, messages, userId, organizationId, type }, 'Messages inserted.');
     }
-  } catch (error) {
+  } catch (err) {
 
-    logger.error({ error, chatId }, 'Failed to save chat.');
+    logger.error({ err, chatId }, 'Failed to save chat.');
 
-    throw error;
+    throw err;
   }
 }
 

@@ -47,9 +47,9 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
 
     return c.json({ token: result.token, user: result.user });
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.error({ error }, 'Login endpoint error.');
+    logger.error({ err }, 'Login endpoint error.');
 
     return c.json({ error: 'Internal server error' }, 500);
   }

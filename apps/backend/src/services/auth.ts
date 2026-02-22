@@ -104,9 +104,9 @@ export const loginWithPassword = async (
       },
     };
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.debug({ err: error, email }, 'Login with password failed.');
+    logger.debug({ err, email }, 'Login with password failed.');
 
     return { success: false, error: 'Authentication failed' };
   }
@@ -209,9 +209,9 @@ export const loginWithToken = async (
       },
     };
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.error({ error }, 'Login with token failed.');
+    logger.error({ err }, 'Login with token failed.');
 
     return { success: false, error: 'Authentication failed' };
   }
@@ -249,9 +249,9 @@ export const isSessionValid = async (jti: string): Promise<boolean> => {
 
     return valid;
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.error({ error, jti }, 'Failed to validate session.');
+    logger.error({ err, jti }, 'Failed to validate session.');
 
     return false;
   }
@@ -275,9 +275,9 @@ export const revokeSession = async (jti: string): Promise<boolean> => {
 
     return true;
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.error({ error, jti }, 'Failed to revoke session.');
+    logger.error({ err, jti }, 'Failed to revoke session.');
 
     return false;
   }

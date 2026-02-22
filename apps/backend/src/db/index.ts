@@ -23,9 +23,9 @@ export const testConnection = async (): Promise<boolean> => {
 
     return true
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.error({ error }, 'Database connection failed.')
+    logger.error({ err }, 'Database connection failed.')
     return false
   }
 }

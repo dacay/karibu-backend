@@ -23,7 +23,7 @@ export function initErrorReporter(): void {
 export function reportError(error: unknown, context?: Record<string, unknown>): void {
 
   if (isDev || !env.SENTRY_DSN) {
-    logger.error({ error, ...context }, 'Reported error')
+    logger.error({ err: error, ...context }, 'Reported error')
   }
 
   if (env.SENTRY_DSN) {

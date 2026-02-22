@@ -45,9 +45,9 @@ export const generateToken = async (
       expiresAt: new Date(exp * 1000),
     };
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.error({ error }, 'Failed to generate JWT token.');
+    logger.error({ err }, 'Failed to generate JWT token.');
 
     throw new Error('Token generation failed');
   }
@@ -64,9 +64,9 @@ export const verifyToken = async (token: string): Promise<JWTPayload> => {
 
     return payload as JWTPayload;
 
-  } catch (error) {
+  } catch (err) {
 
-    logger.error({ error }, 'Failed to verify JWT token.');
+    logger.error({ err }, 'Failed to verify JWT token.');
     
     throw new Error('Invalid or expired token');
   }

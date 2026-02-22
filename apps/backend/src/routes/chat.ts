@@ -63,8 +63,8 @@ chat.post('/ml', zValidator('json', mlChatSchema), async (c) => {
         userId: auth.userId,
         organizationId: auth.organizationId,
         type: 'microlearning',
-      }).catch((error) => {
-        logger.error({ error, chatId }, 'Failed to persist chat after stream finish.');
+      }).catch((err) => {
+        logger.error({ err, chatId }, 'Failed to persist chat after stream finish.');
       });
     },
   });
