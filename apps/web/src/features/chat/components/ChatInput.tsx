@@ -91,7 +91,7 @@ export function ChatInput({
 
   // Text mode: textarea + optional mic toggle + send button
   return (
-    <div className="shrink-0 border-t bg-background px-4 py-3">
+    <div className="shrink-0 border-t bg-background px-3 py-2 sm:px-4 sm:py-3">
       <div className="flex items-end gap-2">
         <Textarea
           value={value}
@@ -100,36 +100,38 @@ export function ChatInput({
           placeholder={
             voiceState === "recording"
               ? "Listening..."
-              : "Message... (Enter to send, Shift+Enter for new line)"
+              : "Message..."
           }
           rows={1}
-          className="min-h-9 max-h-36 resize-none"
+          className="min-h-10 sm:min-h-9 max-h-36 resize-none"
           disabled={isLoading}
         />
         {isVoiceSupported && (
           <Button
             type="button"
             variant={voiceState === "recording" ? "destructive" : "outline"}
-            size="icon"
+            size="sm"
+            className="shrink-0 h-10 w-10"
             onClick={voiceState === "recording" ? stopListening : startListening}
             disabled={voiceState === "transcribing"}
             aria-label={voiceState === "recording" ? "Stop listening" : "Start voice input"}
           >
             {voiceState === "recording" ? (
-              <MicOff className="size-4" />
+              <MicOff className="size-5" />
             ) : (
-              <Mic className="size-4" />
+              <Mic className="size-5" />
             )}
           </Button>
         )}
         <Button
           type="button"
-          size="icon"
+          size="sm"
+          className="shrink-0 h-10 w-10"
           onClick={onSubmit}
           disabled={isLoading || !value?.trim()}
           aria-label="Send message"
         >
-          <Send className="size-4" />
+          <Send className="size-5" />
         </Button>
       </div>
     </div>
