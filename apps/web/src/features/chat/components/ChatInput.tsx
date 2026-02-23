@@ -1,0 +1,137 @@
+"use client";
+
+import { type KeyboardEvent } from "react";
+import { Send, Mic, MicOff, Loader2, Square } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import type { VoiceInputState } from "../hooks/useVoiceInput";
+
+interface ChatInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  isLoading: boolean;
+  mode: "text" | "voice";
+  voiceState: VoiceInputState;
+  isVoiceSupported: boolean;
+  startListening: () => void;
+  stopListening: () => void;
+  // Voice mode controls
+  isSpeaking: boolean;
+  voicePaused: boolean;
+  onStopVoice: () => void;
+  onStartVoice: () => void;
+}
+
+export function ChatInput({
+  value,
+  onChange,
+  onSubmit,
+  isLoading,
+  mode,
+  voiceState,
+  isVoiceSupported,
+  startListening,
+  stopListening,
+  isSpeaking,
+  voicePaused,
+  onStopVoice,
+  onStartVoice,
+}: ChatInputProps) {
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!isLoading && value?.trim()) {
+        onSubmit();
+      }
+    }
+  };
+
+  // Voice mode: single large button — red stop when loop is running, blue mic when paused
+  if (mode === "voice") {
+    const loopRunning = !voicePaused;
+    const isProcessing = voiceState === "transcribing" || isLoading;
+
+    const statusText = isSpeaking
+      ? "Speaking..."
+      : voiceState === "recording"
+      ? "Listening..."
+      : isProcessing
+      ? "Processing..."
+      : loopRunning
+      ? "Listening..."
+      : "Tap to speak";
+
+    return (
+      <div className="shrink-0 border-t bg-background px-4 py-6">
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-sm text-muted-foreground">{statusText}</p>
+          <Button
+            type="button"
+            size="icon"
+            variant={loopRunning ? "destructive" : "default"}
+            className="h-16 w-16 rounded-full"
+            onClick={loopRunning ? onStopVoice : onStartVoice}
+            disabled={isProcessing}
+            aria-label={loopRunning ? "Stop" : "Start speaking"}
+          >
+            {isProcessing ? (
+              <Loader2 className="size-6 animate-spin" />
+            ) : loopRunning ? (
+              <Square className="size-6 fill-current" />
+            ) : (
+              <Mic className="size-6" />
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Text mode: textarea + optional mic toggle + send button
+  return (
+    <div className="shrink-0 border-t bg-background px-4 py-3">
+      <div className="flex items-end gap-2">
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={
+            voiceState === "recording"
+              ? "Listening..."
+              : "Message... (Enter to send, Shift+Enter for new line)"
+          }
+          rows={1}
+          className="min-h-9 max-h-36 resize-none"
+          disabled={isLoading}
+        />
+        {isVoiceSupported && (
+          <Button
+            type="button"
+            variant={voiceState === "recording" ? "destructive" : "outline"}
+            size="icon"
+            onClick={voiceState === "recording" ? stopListening : startListening}
+            disabled={voiceState === "transcribing"}
+            aria-label={voiceState === "recording" ? "Stop listening" : "Start voice input"}
+          >
+            {voiceState === "recording" ? (
+              <MicOff className="size-4" />
+            ) : (
+              <Mic className="size-4" />
+            )}
+          </Button>
+        )}
+        <Button
+          type="button"
+          size="icon"
+          onClick={onSubmit}
+          disabled={isLoading || !value?.trim()}
+          aria-label="Send message"
+        >
+          <Send className="size-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
