@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./ChatMessage";
-import { TypingIndicator } from "./TypingIndicator";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
 import type { UIMessage } from "ai";
 import type { ChatAvatar } from "../types";
 
@@ -20,16 +22,9 @@ export function ChatMessages({
   avatar,
   speakingMessageId,
 }: ChatMessagesProps) {
-
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
-
   return (
-    <ScrollArea className="flex-1">
-      <div className="flex flex-col gap-4 px-4 py-6">
+    <Conversation>
+      <ConversationContent>
         {messages.length === 0 && !isLoading && (
           <p className="text-center text-sm text-muted-foreground">
             Start a conversation
@@ -43,9 +38,17 @@ export function ChatMessages({
             isSpeaking={speakingMessageId === message.id}
           />
         ))}
-        {isLoading && <TypingIndicator avatar={avatar} />}
-        <div ref={bottomRef} />
-      </div>
-    </ScrollArea>
+        {isLoading && (
+          <div className="flex items-end gap-2">
+            <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-muted px-4 py-3">
+              <span className="size-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
+              <span className="size-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
+              <span className="size-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:300ms]" />
+            </div>
+          </div>
+        )}
+      </ConversationContent>
+      <ConversationScrollButton />
+    </Conversation>
   );
 }

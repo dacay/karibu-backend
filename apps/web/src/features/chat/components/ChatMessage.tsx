@@ -1,7 +1,11 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { ChatAgentAvatar } from "./ChatAgentAvatar";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
 import type { UIMessage } from "ai";
 import type { ChatAvatar } from "../types";
 
@@ -19,32 +23,21 @@ function extractText(message: UIMessage): string {
 }
 
 export function ChatMessage({ message, avatar, isSpeaking = false }: ChatMessageProps) {
-
   const isAssistant = message.role === "assistant";
   const text = extractText(message);
 
   if (!text) return null;
 
   return (
-    <div
-      className={cn(
-        "flex items-end gap-2",
-        isAssistant ? "flex-row" : "flex-row-reverse"
-      )}
-    >
+    <div className="flex items-end gap-2">
       {isAssistant && (
         <ChatAgentAvatar avatar={avatar} size="sm" isSpeaking={isSpeaking} />
       )}
-      <div
-        className={cn(
-          "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
-          isAssistant
-            ? "rounded-bl-sm bg-muted text-foreground"
-            : "rounded-br-sm bg-primary text-primary-foreground"
-        )}
-      >
-        {text}
-      </div>
+      <Message from={message.role}>
+        <MessageContent>
+          <MessageResponse>{text}</MessageResponse>
+        </MessageContent>
+      </Message>
     </div>
   );
 }
