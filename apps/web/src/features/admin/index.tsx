@@ -9,7 +9,11 @@ import {
   MessageSquare,
   Users,
   ChevronDown,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +25,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -68,8 +74,15 @@ function getInitials(email: string): string {
   return local.slice(0, 2).toUpperCase();
 }
 
+const APPEARANCE_OPTIONS: { value: string; label: string; icon: React.ElementType }[] = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+];
+
 export function AdminRoot() {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { lightSrc, darkSrc, isLoading, onLightError, onDarkError } = useLogo();
   const pathname = usePathname();
   const router = useRouter();
@@ -161,6 +174,18 @@ export function AdminRoot() {
                   <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                 </div>
               </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal px-2 py-1">
+                Appearance
+              </DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
+                {APPEARANCE_OPTIONS.map(({ value, label, icon: Icon }) => (
+                  <DropdownMenuRadioItem key={value} value={value} className="cursor-pointer">
+                    <Icon className="size-3.5 mr-2" />
+                    {label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="cursor-pointer text-destructive focus:text-destructive"
