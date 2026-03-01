@@ -12,6 +12,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  Link,
+  Check,
   X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -282,15 +284,28 @@ function InviteForm({ onClose }: InviteFormProps) {
 
 interface MemberActionsProps {
   member: TeamMember;
-  onAction: (action: "resend" | "regenerate" | "remove", id: string) => void;
+  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink", id: string) => void;
   isPending: boolean;
+  copiedUserId: string | null;
 }
 
-function MemberActions({ member, onAction, isPending }: MemberActionsProps) {
+function MemberActions({ member, onAction, isPending, copiedUserId }: MemberActionsProps) {
   if (member.role === "admin") return null;
+
+  const isCopied = copiedUserId === member.id;
 
   return (
     <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-7 text-muted-foreground hover:text-foreground"
+        title="Copy sign-in link"
+        disabled={isPending}
+        onClick={() => onAction("copyLink", member.id)}
+      >
+        {isCopied ? <Check className="size-3.5 text-green-600" /> : <Link className="size-3.5" />}
+      </Button>
       <Button
         variant="ghost"
         size="icon"
@@ -331,10 +346,11 @@ interface MemberRowProps {
   member: TeamMember;
   isLast: boolean;
   isPending: boolean;
-  onAction: (action: "resend" | "regenerate" | "remove", id: string) => void;
+  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink", id: string) => void;
+  copiedUserId: string | null;
 }
 
-function MemberRow({ member, isLast, isPending, onAction }: MemberRowProps) {
+function MemberRow({ member, isLast, isPending, onAction, copiedUserId }: MemberRowProps) {
   return (
     <tr className={["hover:bg-muted/30 transition-colors", !isLast ? "border-b" : ""].join(" ")}>
       <td className="px-5 py-3">
@@ -356,7 +372,7 @@ function MemberRow({ member, isLast, isPending, onAction }: MemberRowProps) {
         {member.tokenLastUsedAt ? formatDate(member.tokenLastUsedAt) : "—"}
       </td>
       <td className="px-4 py-3 whitespace-nowrap">
-        <MemberActions member={member} onAction={onAction} isPending={isPending} />
+        <MemberActions member={member} onAction={onAction} isPending={isPending} copiedUserId={copiedUserId} />
       </td>
     </tr>
   );
@@ -368,6 +384,7 @@ export function TeamSection() {
   const queryClient = useQueryClient();
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({
@@ -408,10 +425,24 @@ export function TeamSection() {
     },
   });
 
-  const handleAction = (action: "resend" | "regenerate" | "remove", userId: string) => {
+  const handleAction = (action: "resend" | "regenerate" | "remove" | "copyLink", userId: string) => {
     setActionError(null);
-    setPendingUserId(userId);
 
+    if (action === "copyLink") {
+      setPendingUserId(userId);
+      api.team.getLink(userId).then(({ link }) => {
+        navigator.clipboard.writeText(link);
+        setCopiedUserId(userId);
+        setPendingUserId(null);
+        setTimeout(() => setCopiedUserId(null), 2000);
+      }).catch((err) => {
+        setActionError((err as Error).message);
+        setPendingUserId(null);
+      });
+      return;
+    }
+
+    setPendingUserId(userId);
     if (action === "resend") resendMutation.mutate(userId);
     else if (action === "regenerate") regenerateMutation.mutate(userId);
     else removeMutation.mutate(userId);
@@ -504,6 +535,7 @@ export function TeamSection() {
                     isLast={i === admins.length - 1 && regularUsers.length === 0}
                     isPending={pendingUserId === member.id}
                     onAction={handleAction}
+                    copiedUserId={copiedUserId}
                   />
                 ))}
                 {admins.length > 0 && regularUsers.length > 0 && (
@@ -520,6 +552,7 @@ export function TeamSection() {
                     isLast={i === regularUsers.length - 1}
                     isPending={pendingUserId === member.id}
                     onAction={handleAction}
+                    copiedUserId={copiedUserId}
                   />
                 ))}
               </tbody>

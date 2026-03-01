@@ -6,7 +6,7 @@ import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { db } from '../db/index.js';
 import { users, authTokens } from '../db/schema.js';
 import { hashPassword, generateLoginToken } from '../utils/crypto.js';
-import { sendInvitationEmail } from '../services/email.js';
+import { sendInvitationEmail, buildOrgUrl } from '../services/email.js';
 import { logger } from '../config/logger.js';
 
 const teamRouter = new Hono();
@@ -178,6 +178,51 @@ teamRouter.post('/invite', zValidator('json', inviteSchema), async (c) => {
   }
 
   return c.json({ invited, alreadyExists, failed }, 201);
+})
+
+/**
+ * GET /team/:userId/link
+ * Return the sign-in link for a user so the admin can share it via another channel.
+ */
+teamRouter.get('/:userId/link', async (c) => {
+
+  const auth = c.get('auth');
+  const organization = c.get('organization');
+  const userId = c.req.param('userId');
+
+  // Verify user belongs to this organization
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(
+      and(
+        eq(users.id, userId),
+        eq(users.organizationId, auth.organizationId)
+      )
+    )
+    .limit(1);
+
+  if (!user) {
+
+    return c.json({ error: 'User not found.' }, 404);
+  }
+
+  // Find the most recent auth token for this user
+  const [latestToken] = await db
+    .select()
+    .from(authTokens)
+    .where(eq(authTokens.userId, userId))
+    .orderBy(desc(authTokens.createdAt))
+    .limit(1);
+
+  if (!latestToken) {
+
+    return c.json({ error: 'No invitation token found for this user.' }, 404);
+  }
+
+  const link = buildOrgUrl(organization.subdomain, '/', { token: latestToken.token });
+
+  return c.json({ link });
 })
 
 /**

@@ -236,6 +236,8 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ emails }),
       }),
+    getLink: (userId: string) =>
+      request<{ link: string }>(`/team/${userId}/link`),
     resendInvite: (userId: string) =>
       request<{ success: boolean }>(`/team/${userId}/resend-invite`, { method: "POST" }),
     regenerateToken: (userId: string) =>
