@@ -112,24 +112,35 @@ See [CONVENTIONS.md](../../CONVENTIONS.md) for the general style guide.
 - **TypeScript**: Strict mode enabled, all imports must use `.js` extensions
 - **Error handling**: Use Pino's structured logging with error context: `logger.error({ error }, 'message')`
 
-## S3 Document Storage
+## S3 Storage
+
+The backend uses two separate S3 buckets:
+
+- **Documents bucket** (`S3_DOCS_BUCKET_NAME`) — private, accessed via presigned URLs or direct download
+- **Avatar bucket** (`S3_AVATAR_BUCKET_NAME`) — CDN-fronted, public read via CloudFront
+
+Each bucket has its own key prefix env var (`S3_DOCS_KEY_PREFIX`, `S3_AVATAR_KEY_PREFIX`) for environment separation (e.g. `prod`, `staging`). Both default to empty.
 
 ### Key Structure
-S3 keys follow the pattern: `{S3_KEY_PREFIX}/{organizationId}/{documentId}.{ext}`
 
-- **organizationId (UUID) is used as the folder prefix**, not the subdomain. Subdomains are mutable — if an org changes their subdomain, all existing S3 keys stored in the DB would become stale. UUIDs are immutable.
-- `S3_KEY_PREFIX` is optional (defaults to empty). It strips leading/trailing slashes automatically, so `documents/`, `/documents`, and `documents` all produce the same result.
-- The bucket is dedicated to documents, so no `documents/` prefix is added by default in code.
+**Documents**: `{S3_DOCS_KEY_PREFIX}/{organizationId}/{documentId}.{ext}`
+- Uses **organizationId (UUID)** as the folder prefix. Subdomains are mutable — if an org changes their subdomain, stored S3 keys would break. UUIDs are immutable.
+
+**Avatars**: `{S3_AVATAR_KEY_PREFIX}/{subdomain}/avatars/{avatarId}.{ext}`
+- Uses **subdomain** as the folder prefix. This matches the CDN URL structure (same as logos: `{subdomain}/logo-light.png`), so CloudFront serves everything under the org's subdomain path.
 
 ### AWS IAM — Minimal Policy
-The backend IAM user only needs:
+The backend IAM user needs access to both buckets:
 ```json
 {
   "Statement": [
     {
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
-      "Resource": "arn:aws:s3:::YOUR_BUCKET/*"
+      "Resource": [
+        "arn:aws:s3:::karibu-docs/*",
+        "arn:aws:s3:::karibu-assets/*"
+      ]
     },
     {
       "Effect": "Allow",

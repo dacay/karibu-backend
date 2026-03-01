@@ -4,10 +4,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        // Allow logos served from the Karibu CDN
+        // Allow assets (logos, avatars) served from the Karibu CDN
         protocol: "https",
         hostname: new URL(
-          process.env.NEXT_PUBLIC_CDN_URL ?? "https://cdn.karibu.ai"
+          process.env.NEXT_PUBLIC_ASSETS_CDN_URL ?? "https://cdn.karibu.ai"
         ).hostname,
         pathname: "/**",
       },

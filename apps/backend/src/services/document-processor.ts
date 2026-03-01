@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
-import { downloadFromS3 } from './s3.js';
+import { downloadFromDocsBucket } from './s3.js';
 import { addDocumentChunks } from './chromadb.js';
 import { embedTexts } from './embeddings.js';
 import { logger } from '../config/logger.js';
@@ -62,7 +62,7 @@ export const processDocument = async (document: DocumentRecord): Promise<void> =
   }
 
   try {
-    const buffer = await downloadFromS3(s3Key);
+    const buffer = await downloadFromDocsBucket(s3Key);
     const text = await extractText(buffer, mimeType);
 
     if (text.trim().length === 0) {
