@@ -26,6 +26,7 @@ import {
   type MicrolearningSequence,
   type DnaTopic,
   type ConversationPattern,
+  type Avatar,
 } from "@/lib/api";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -90,6 +91,7 @@ interface MlFormProps {
   initial?: Partial<MlFormValues>;
   topics: DnaTopic[];
   patterns: ConversationPattern[];
+  avatars: Avatar[];
   sequences: MicrolearningSequence[];
   onSave: (values: MlFormValues) => void;
   onCancel: () => void;
@@ -101,6 +103,7 @@ function MlForm({
   initial = {},
   topics,
   patterns,
+  avatars,
   sequences,
   onSave,
   onCancel,
@@ -179,12 +182,12 @@ function MlForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Avatar ID</label>
-          <Input
-            placeholder="UUID (optional)"
-            value={avatarId}
-            onChange={(e) => setAvatarId(e.target.value)}
-          />
+          <label className="text-xs font-medium text-muted-foreground">Avatar</label>
+          <Select value={avatarId} onChange={setAvatarId} placeholder="No avatar">
+            {avatars.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </Select>
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -222,10 +225,11 @@ interface MlCardProps {
   ml: Microlearning;
   topics: DnaTopic[];
   patterns: ConversationPattern[];
+  avatars: Avatar[];
   sequences: MicrolearningSequence[];
 }
 
-function MlCard({ ml, topics, patterns, sequences }: MlCardProps) {
+function MlCard({ ml, topics, patterns, avatars, sequences }: MlCardProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
 
@@ -274,6 +278,7 @@ function MlCard({ ml, topics, patterns, sequences }: MlCardProps) {
         }}
         topics={topics}
         patterns={patterns}
+        avatars={avatars}
         sequences={sequences}
         onSave={(values) => updateMutation.mutate(values)}
         onCancel={() => setEditing(false)}
@@ -293,6 +298,7 @@ function MlCard({ ml, topics, patterns, sequences }: MlCardProps) {
               <span>Topic: {topicName(ml.topicId, topics)}</span>
               <span>Subtopics: {subtopicNames(ml.subtopicIds, topics)}</span>
               <span>Pattern: {patternName(ml.patternId, patterns)}</span>
+              <span>Avatar: {ml.avatarId ? (avatars.find((a) => a.id === ml.avatarId)?.name ?? "—") : "—"}</span>
               {ml.sequenceId && (
                 <span>Sequence: {sequences.find((s) => s.id === ml.sequenceId)?.name ?? "—"}</span>
               )}
@@ -727,6 +733,11 @@ export function MicrolearningsSection() {
     queryFn: () => api.patterns.list(),
   });
 
+  const avatarsQuery = useQuery({
+    queryKey: ["avatars"],
+    queryFn: () => api.avatars.list(),
+  });
+
   const createMlMutation = useMutation({
     mutationFn: (values: {
       title: string;
@@ -764,9 +775,10 @@ export function MicrolearningsSection() {
   const sequences = seqQuery.data?.sequences ?? [];
   const topics = dnaQuery.data?.topics ?? [];
   const patterns = patternsQuery.data?.patterns ?? [];
+  const avatars = avatarsQuery.data?.avatars ?? [];
 
-  const isLoadingMl = mlQuery.isLoading || dnaQuery.isLoading || patternsQuery.isLoading;
-  const isLoadingSeq = seqQuery.isLoading || dnaQuery.isLoading || patternsQuery.isLoading;
+  const isLoadingMl = mlQuery.isLoading || dnaQuery.isLoading || patternsQuery.isLoading || avatarsQuery.isLoading;
+  const isLoadingSeq = seqQuery.isLoading || dnaQuery.isLoading || patternsQuery.isLoading || avatarsQuery.isLoading;
 
   return (
     <div className="space-y-6">
@@ -839,6 +851,7 @@ export function MicrolearningsSection() {
             <MlForm
               topics={topics}
               patterns={patterns}
+              avatars={avatars}
               sequences={sequences}
               onSave={(values) => createMlMutation.mutate(values)}
               onCancel={() => setCreatingMl(false)}
@@ -877,6 +890,7 @@ export function MicrolearningsSection() {
                   ml={ml}
                   topics={topics}
                   patterns={patterns}
+                  avatars={avatars}
                   sequences={sequences}
                 />
               ))}

@@ -80,7 +80,7 @@ export const microlearnings = pgTable('microlearnings', {
   topicId: uuid('topic_id').references(() => dnaTopics.id, { onDelete: 'set null' }),
   subtopicIds: jsonb('subtopic_ids').$type<string[]>(),
   patternId: uuid('pattern_id').references(() => conversationPatterns.id, { onDelete: 'set null' }),
-  avatarId: uuid('avatar_id'),
+  avatarId: uuid('avatar_id').references(() => avatars.id, { onDelete: 'set null' }),
   sequenceId: uuid('sequence_id').references(() => microlearningSequences.id, { onDelete: 'set null' }),
   position: integer('position'),
   ...timestamps,
