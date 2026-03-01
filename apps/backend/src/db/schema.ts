@@ -76,7 +76,12 @@ export const microlearningSequences = pgTable('microlearning_sequences', {
 export const microlearnings = pgTable('microlearnings', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  sequenceId: uuid('sequence_id').references(() => microlearningSequences.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  topicId: uuid('topic_id').references(() => dnaTopics.id, { onDelete: 'set null' }),
+  subtopicIds: jsonb('subtopic_ids').$type<string[]>(),
+  patternId: uuid('pattern_id').references(() => conversationPatterns.id, { onDelete: 'set null' }),
+  avatarId: uuid('avatar_id'),
+  sequenceId: uuid('sequence_id').references(() => microlearningSequences.id, { onDelete: 'set null' }),
   position: integer('position'),
   ...timestamps,
 });
