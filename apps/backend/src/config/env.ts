@@ -42,13 +42,19 @@ const envSchema = z.object({
   OPENAI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
   ELEVENLABS_API_KEY: z.string().min(1).optional(),
 
-  // AWS S3 (Document Storage)
+  // AWS S3
   AWS_REGION: z.string().min(1).optional(),
   AWS_ACCESS_KEY_ID: z.string().min(1).optional(),
   AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
-  S3_BUCKET_NAME: z.string().min(1).optional(),
+
+  // S3 — Document Storage (private, presigned access)
+  S3_DOCS_BUCKET_NAME: z.string().min(1).optional(),
+  S3_DOCS_KEY_PREFIX: z.string().default('').transform((val) => val.replace(/^\/+|\/+$/g, '')),
   S3_MAX_UPLOAD_SIZE_MB: z.string().default('20').transform(Number),
-  S3_KEY_PREFIX: z.string().default('').transform((val) => val.replace(/^\/+|\/+$/g, '')),
+
+  // S3 — Avatar Images (CDN-fronted, public read)
+  S3_AVATAR_BUCKET_NAME: z.string().min(1).optional(),
+  S3_AVATAR_KEY_PREFIX: z.string().default('').transform((val) => val.replace(/^\/+|\/+$/g, '')),
 
   // DNA Synthesis
   DNA_SYNTHESIS_MIN_VALUES: z.string().default('5').transform(Number),
