@@ -123,10 +123,20 @@ function InlineForm({ placeholder, descriptionPlaceholder, onSave, onCancel, isL
 
 function ValueRow({ value }: { value: DnaValue }) {
   const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(value.content);
 
   const approveMutation = useMutation({
     mutationFn: (approval: "approved" | "rejected") => api.dna.updateValueApproval(value.id, approval),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["dna"] }),
+  });
+
+  const editMutation = useMutation({
+    mutationFn: (content: string) => api.dna.updateValueContent(value.id, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dna"] });
+      setEditing(false);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -134,11 +144,42 @@ function ValueRow({ value }: { value: DnaValue }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["dna"] }),
   });
 
+  if (editing) {
+    return (
+      <div className="flex flex-col gap-2 px-4 pt-3 pb-2">
+        <Input
+          value={editContent}
+          onChange={(e) => setEditContent(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && editContent.trim()) editMutation.mutate(editContent); }}
+          autoFocus
+        />
+        <div className="flex gap-2">
+          <Button size="sm" disabled={!editContent.trim() || editMutation.isPending} onClick={() => editMutation.mutate(editContent)}>
+            {editMutation.isPending ? <Spinner className="size-3 mr-1" /> : null}Save
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => { setEditContent(value.content); setEditing(false); }}>Cancel</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-start gap-2 px-4 pt-3 pb-2 group">
       <p className="flex-1 text-sm text-muted-foreground leading-snug">{value.content}</p>
       <div className="flex items-center gap-1 shrink-0">
+        {value.userEdited && (
+          <Badge className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-100 border-0">Edited</Badge>
+        )}
         {approvalBadge(value.approval)}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={() => { setEditContent(value.content); setEditing(true); }}
+          aria-label="Edit value"
+        >
+          <Pencil className="size-3" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

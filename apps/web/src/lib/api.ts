@@ -61,6 +61,7 @@ export interface DnaValue {
   organizationId: string;
   content: string;
   approval: "pending" | "approved" | "rejected";
+  userEdited: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -202,6 +203,11 @@ export const api = {
       request<{ value: DnaValue }>(`/dna/values/${id}/approval`, {
         method: "PATCH",
         body: JSON.stringify({ approval }),
+      }),
+    updateValueContent: (id: string, content: string) =>
+      request<{ value: DnaValue }>(`/dna/values/${id}/content`, {
+        method: "PATCH",
+        body: JSON.stringify({ content }),
       }),
     deleteValue: (id: string) =>
       request<{ success: boolean }>(`/dna/values/${id}`, { method: "DELETE" }),
