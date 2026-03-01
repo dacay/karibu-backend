@@ -13,7 +13,6 @@ import {
   X,
   Wand2,
   Pencil,
-  Loader2,
 } from "lucide-react";
 import {
   Accordion,
@@ -149,7 +148,7 @@ function ValueRow({ value }: { value: DnaValue }) {
           aria-label="Approve"
         >
           {approveMutation.isPending && approveMutation.variables === "approved"
-            ? <Loader2 className="size-3 animate-spin" />
+            ? <Spinner className="size-3" />
             : <Check className="size-3" />}
         </Button>
         <Button
@@ -161,7 +160,7 @@ function ValueRow({ value }: { value: DnaValue }) {
           aria-label="Reject"
         >
           {approveMutation.isPending && approveMutation.variables === "rejected"
-            ? <Loader2 className="size-3 animate-spin" />
+            ? <Spinner className="size-3" />
             : <X className="size-3" />}
         </Button>
         <Button
@@ -278,7 +277,7 @@ function SubtopicRow({ subtopic }: { subtopic: DnaSubtopic }) {
 
       {/* Values */}
       {subtopic.values.length > 0 && (
-        <Accordion type="single" collapsible>
+        <Accordion type="single" collapsible defaultValue="values">
           <AccordionItem value="values" className="border-0">
             <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline">
               {subtopic.values.length} value{subtopic.values.length !== 1 ? "s" : ""}
