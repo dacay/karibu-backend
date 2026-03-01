@@ -40,6 +40,12 @@ const envSchema = z.object({
   // AI / LLM
   OPENAI_API_KEY: z.string().min(1),
   ELEVENLABS_API_KEY: z.string().min(1).optional(),
+
+  // S3 - Org Assets (logos, etc.)
+  S3_ORG_BUCKET: z.string().min(1).optional(),
+  S3_ORG_REGION: z.string().min(1).default('us-east-1'),
+  AWS_ACCESS_KEY_ID: z.string().min(1).optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
 })
 
 const parseEnv = () => {

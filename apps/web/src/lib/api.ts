@@ -46,12 +46,39 @@ export interface LoginResponse {
   };
 }
 
+export interface OrgConfig {
+  name: string;
+  subdomain: string;
+  pronunciation: string | null;
+}
+
+export interface LogoPresignResponse {
+  uploadUrl: string;
+  key: string;
+}
+
 // ----- Namespaced API client -----
 
 export const api = {
   auth: {
     login: (body: { email: string; password: string }) =>
       request<LoginResponse>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+  },
+  org: {
+    getConfig: () => request<OrgConfig>("/org/config"),
+    updateConfig: (body: { name?: string; pronunciation?: string | null }) =>
+      request<OrgConfig>("/org/config", {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    getLogoUploadUrl: (body: {
+      variant: "light" | "dark";
+      contentType: "image/png" | "image/jpeg" | "image/webp" | "image/svg+xml";
+    }) =>
+      request<LogoPresignResponse>("/org/logo/presign", {
         method: "POST",
         body: JSON.stringify(body),
       }),
