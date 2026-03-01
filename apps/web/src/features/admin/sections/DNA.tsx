@@ -71,7 +71,7 @@ function synthesisBadge(status: DnaSubtopic["synthesisStatus"]) {
   if (status === "done")
     return <Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100 border-0">Done</Badge>;
   if (status === "failed")
-    return <Badge className="text-xs bg-red-100 text-red-700 hover:bg-red-100 border-0">Failed</Badge>;
+    return <Badge className="text-xs bg-red-100 text-red-700 hover:bg-red-100 border-0">Not Found</Badge>;
   return null;
 }
 
