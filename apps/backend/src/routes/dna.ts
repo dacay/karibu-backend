@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, ne } from 'drizzle-orm';
 import { generateText } from 'ai';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { db } from '../db/index.js';
@@ -306,8 +306,8 @@ ${context}`,
       return c.json({ error: 'No relevant content found in the uploaded documents for this topic.' }, 422);
     }
 
-    // Delete old values, insert new ones
-    await db.delete(dnaValues).where(eq(dnaValues.subtopicId, id));
+    // Delete non-approved values, preserving any previously approved ones
+    await db.delete(dnaValues).where(and(eq(dnaValues.subtopicId, id), ne(dnaValues.approval, 'approved')));
 
     if (lines.length > 0) {
       await db.insert(dnaValues).values(

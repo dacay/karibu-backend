@@ -188,7 +188,9 @@ function ValueRow({ value }: { value: DnaValue }) {
           onClick={() => approveMutation.mutate("approved")}
           aria-label="Approve"
         >
-          <Check className="size-3" />
+          {approveMutation.isPending && approveMutation.variables === "approved"
+            ? <Spinner className="size-3" />
+            : <Check className="size-3" />}
         </Button>
         <Button
           variant="ghost"
@@ -198,7 +200,9 @@ function ValueRow({ value }: { value: DnaValue }) {
           onClick={() => approveMutation.mutate("rejected")}
           aria-label="Reject"
         >
-          <X className="size-3" />
+          {approveMutation.isPending && approveMutation.variables === "rejected"
+            ? <Spinner className="size-3" />
+            : <X className="size-3" />}
         </Button>
         <Button
           variant="ghost"
@@ -314,7 +318,7 @@ function SubtopicRow({ subtopic }: { subtopic: DnaSubtopic }) {
 
       {/* Values */}
       {subtopic.values.length > 0 && (
-        <Accordion type="single" collapsible>
+        <Accordion type="single" collapsible defaultValue="values">
           <AccordionItem value="values" className="border-0">
             <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline">
               {subtopic.values.length} value{subtopic.values.length !== 1 ? "s" : ""}
