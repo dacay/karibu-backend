@@ -3,7 +3,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
-import { uploadToS3, deleteFromS3, buildDocumentKey } from '../services/s3.js';
+import { uploadToDocsBucket, deleteFromDocsBucket, buildDocumentKey } from '../services/s3.js';
 import { processDocument } from '../services/document-processor.js';
 import { deleteDocumentChunks } from '../services/chromadb.js';
 import { logger } from '../config/logger.js';
@@ -80,7 +80,7 @@ documentsRouter.post('/upload', requireRole('admin'), async (c) => {
   try {
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { s3Bucket } = await uploadToS3(s3Key, buffer, file.type);
+    const { s3Bucket } = await uploadToDocsBucket(s3Key, buffer, file.type);
 
     // Update record with S3 location
     const [updated] = await db
@@ -154,7 +154,7 @@ documentsRouter.delete('/:id', requireRole('admin'), async (c) => {
 
     if (document.s3Key) {
 
-      await deleteFromS3(document.s3Key);
+      await deleteFromDocsBucket(document.s3Key);
     }
 
   } catch (err) {
