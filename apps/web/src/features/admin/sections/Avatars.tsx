@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, UserCircle, Upload, X } from "lucide-react";
+import { Plus, Pencil, Trash2, UserCircle, Upload, X, Volume2, Square } from "lucide-react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Separator } from "@/components/ui/separator";
 import { api, type Avatar, ELEVENLABS_VOICES } from "@/lib/api";
+import { useTTS } from "@/features/chat/hooks/useTTS";
 
 const ASSETS_CDN_BASE = process.env.NEXT_PUBLIC_ASSETS_CDN_URL ?? "https://cdn.karibu.ai";
 
@@ -30,8 +31,32 @@ interface VoiceSelectorProps {
 function VoiceSelector({ value, onChange }: VoiceSelectorProps) {
   const female = ELEVENLABS_VOICES.filter((v) => v.gender === "female");
   const male = ELEVENLABS_VOICES.filter((v) => v.gender === "male");
+  const { state, speak, stop } = useTTS();
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
 
-  function VoiceGroup({ voices, label }: { voices: typeof ELEVENLABS_VOICES; label: string }) {
+  function handlePreview(voiceId: string, voiceName: string) {
+    if (previewingVoiceId === voiceId && (state === "loading" || state === "playing")) {
+      stop();
+      setPreviewingVoiceId(null);
+      return;
+    }
+    setPreviewingVoiceId(voiceId);
+    speak(`Hi, I'm ${voiceName}. This is what I sound like.`, voiceId).then(() => {
+      setPreviewingVoiceId(null);
+    });
+  }
+
+  function handleChange(voiceId: string) {
+    stop();
+    setPreviewingVoiceId(null);
+    onChange(voiceId);
+  }
+
+  function isVoiceActive(voiceId: string) {
+    return previewingVoiceId === voiceId && (state === "loading" || state === "playing");
+  }
+
+  function renderVoiceGroup(voices: typeof ELEVENLABS_VOICES, label: string) {
     return (
       <div className="space-y-1">
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
@@ -40,16 +65,35 @@ function VoiceSelector({ value, onChange }: VoiceSelectorProps) {
             <button
               key={v.id}
               type="button"
-              onClick={() => onChange(v.id)}
+              onClick={() => handleChange(v.id)}
               className={[
-                "flex flex-col items-start rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                "flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors cursor-pointer",
                 value === v.id
                   ? "border-primary bg-primary/5 text-primary"
                   : "border-border hover:border-primary/40 hover:bg-muted/50",
               ].join(" ")}
             >
-              <span className="font-medium">{v.name}</span>
-              <span className="text-xs text-muted-foreground">{v.description}</span>
+              <div className="flex flex-col items-start">
+                <span className="font-medium">{v.name}</span>
+                <span className="text-xs text-muted-foreground">{v.description}</span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-6 shrink-0 ml-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePreview(v.id, v.name);
+                }}
+                aria-label={isVoiceActive(v.id) ? "Stop preview" : `Preview ${v.name}`}
+              >
+                {isVoiceActive(v.id) ? (
+                  <Square className="size-3" />
+                ) : (
+                  <Volume2 className="size-3.5" />
+                )}
+              </Button>
             </button>
           ))}
         </div>
@@ -59,8 +103,8 @@ function VoiceSelector({ value, onChange }: VoiceSelectorProps) {
 
   return (
     <div className="space-y-3">
-      <VoiceGroup voices={female} label="Female" />
-      <VoiceGroup voices={male} label="Male" />
+      {renderVoiceGroup(female, "Female")}
+      {renderVoiceGroup(male, "Male")}
     </div>
   );
 }
