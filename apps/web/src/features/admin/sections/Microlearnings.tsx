@@ -13,6 +13,11 @@ import {
   Users,
   Globe,
   FileText,
+  MoreHorizontal,
+  Tag,
+  Hash,
+  MessageSquare,
+  UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +30,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   api,
   type Microlearning,
@@ -51,29 +63,32 @@ function subtopicLabel(ids: string[] | null, topics: DnaTopic[]): string {
   return ids.map((id) => all.find((s) => s.id === id)?.name).filter(Boolean).join(", ");
 }
 
-function metaLine(ml: Microlearning, topics: DnaTopic[], patterns: ConversationPattern[], avatars: Avatar[]): string {
-  const parts: string[] = [];
-  const t = topicLabel(ml.topicId, topics);
-  const s = subtopicLabel(ml.subtopicIds, topics);
-  const p = ml.patternId ? (patterns.find((x) => x.id === ml.patternId)?.name ?? "") : "";
-  const a = ml.avatarId ? (avatars.find((x) => x.id === ml.avatarId)?.name ?? "") : "";
-  if (t) parts.push(t);
-  if (s) parts.push(s);
-  if (p) parts.push(p);
-  if (a) parts.push(a);
-  return parts.join(" · ");
+interface MetaParts {
+  topic: string;
+  subtopics: string;
+  pattern: string;
+  avatar: string;
+}
+
+function metaParts(ml: Microlearning, topics: DnaTopic[], patterns: ConversationPattern[], avatars: Avatar[]): MetaParts {
+  return {
+    topic: topicLabel(ml.topicId, topics),
+    subtopics: subtopicLabel(ml.subtopicIds, topics),
+    pattern: ml.patternId ? (patterns.find((x) => x.id === ml.patternId)?.name ?? "") : "",
+    avatar: ml.avatarId ? (avatars.find((x) => x.id === ml.avatarId)?.name ?? "") : "",
+  };
 }
 
 function StatusBadge({ status }: { status: "draft" | "published" }) {
   if (status === "published") {
     return (
-      <Badge className="text-xs bg-green-100 text-green-700 border-green-200 hover:bg-green-100">
+      <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-100 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800 shrink-0">
         Published
       </Badge>
     );
   }
   return (
-    <Badge className="text-xs bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100">
+    <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 shrink-0">
       Draft
     </Badge>
   );
@@ -121,24 +136,26 @@ function AssignPopover({ seqId }: { seqId: string }) {
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+          className="h-7 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
         >
-          <Users className="size-3.5" />
-          Assign{assignedCount > 0 ? ` · ${assignedCount}` : ""}
+          <Users className="size-3" />
+          {assignedCount > 0 ? `${assignedCount} group${assignedCount !== 1 ? "s" : ""}` : "Assign"}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-3" align="end">
-        <p className="text-xs font-medium mb-2">Assign to groups</p>
+        <p className="text-xs font-semibold mb-2.5 text-foreground">Assign to groups</p>
         {groupsQuery.isLoading || assignmentsQuery.isLoading ? (
           <div className="flex justify-center py-3">
             <Spinner className="size-4" />
           </div>
         ) : groups.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-2">No groups yet. Invite team members to auto-create the All Members group.</p>
+          <p className="text-xs text-muted-foreground py-2 leading-relaxed">
+            No groups yet. Invite team members to auto-create the All Members group.
+          </p>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {groups.map((group) => {
               const checked = assignedGroupIds.has(group.id);
               const isMutating =
@@ -147,7 +164,7 @@ function AssignPopover({ seqId }: { seqId: string }) {
               return (
                 <label
                   key={group.id}
-                  className="flex items-center gap-2 cursor-pointer rounded-md p-1.5 hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-2.5 cursor-pointer rounded-md px-2 py-2 hover:bg-muted/60 transition-colors"
                 >
                   {isMutating ? (
                     <Spinner className="size-3.5 shrink-0" />
@@ -160,9 +177,7 @@ function AssignPopover({ seqId }: { seqId: string }) {
                     />
                   )}
                   <span className="text-sm flex-1 truncate">{group.name}</span>
-                  {group.isAll && (
-                    <span className="text-xs text-muted-foreground">{group.memberCount}</span>
-                  )}
+                  <span className="text-xs text-muted-foreground tabular-nums">{group.memberCount}</span>
                 </label>
               );
             })}
@@ -395,7 +410,7 @@ function MlRow({
   isDeleting,
 }: MlRowProps) {
   const isEditing = editingMlId === ml.id;
-  const meta = metaLine(ml, topics, patterns, avatars);
+  const meta = metaParts(ml, topics, patterns, avatars);
 
   if (isEditing) {
     return (
@@ -418,6 +433,17 @@ function MlRow({
     );
   }
 
+  const subtopicList = meta.subtopics ? meta.subtopics.split(", ").filter(Boolean) : [];
+
+  // Detect per-category loading: id is set but label resolved to empty = data not yet loaded
+  const topicLoading = !!ml.topicId && !meta.topic;
+  const patternLoading = !!ml.patternId && !meta.pattern;
+  const avatarLoading = !!ml.avatarId && !meta.avatar;
+  const subtopicsLoading = !!(ml.subtopicIds?.length) && subtopicList.length === 0;
+
+  const hasAnything = meta.topic || meta.pattern || meta.avatar || subtopicList.length > 0
+    || topicLoading || patternLoading || avatarLoading || subtopicsLoading;
+
   return (
     <div
       draggable={!isEditing && !isPending}
@@ -426,71 +452,109 @@ function MlRow({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       className={[
-        "group flex items-center gap-2 rounded-md border bg-card px-3 py-2.5 transition-opacity",
+        "flex items-center gap-3 rounded-lg border bg-card px-3 py-3 transition-opacity",
         isDragging || isPending ? "opacity-40" : "",
       ].join(" ")}
     >
+      {/* Drag handle */}
       {isPending
-        ? <Spinner className="size-4 shrink-0" />
-        : <GripVertical className="size-4 shrink-0 text-muted-foreground cursor-grab active:cursor-grabbing" />
+        ? <Spinner className="size-4 shrink-0 text-muted-foreground" />
+        : <GripVertical className="size-4 shrink-0 text-muted-foreground/40 cursor-grab active:cursor-grabbing hover:text-muted-foreground transition-colors" />
       }
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <p className="text-sm font-medium truncate">{ml.title}</p>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium leading-none">{ml.title}</span>
           <StatusBadge status={ml.status} />
         </div>
-        {meta && <p className="text-xs text-muted-foreground truncate">{meta}</p>}
-      </div>
-      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 px-2 text-xs gap-1"
-          disabled={isTogglingStatus}
-          onClick={onToggleStatus}
-        >
-          {isTogglingStatus
-            ? <Spinner className="size-3 mr-1" />
-            : ml.status === "draft"
-              ? <><Globe className="size-3" /> Publish</>
-              : <><FileText className="size-3" /> Unpublish</>
-          }
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 text-muted-foreground hover:text-foreground"
-          onClick={onStartEdit}
-          title="Edit"
-          aria-label="Edit"
-        >
-          <Pencil className="size-3.5" />
-        </Button>
-        {onRemoveFromSequence ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 text-muted-foreground hover:text-destructive"
-            onClick={onRemoveFromSequence}
-            title="Remove from sequence"
-            aria-label="Remove from sequence"
-          >
-            <X className="size-3.5" />
-          </Button>
-        ) : (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 text-muted-foreground hover:text-destructive"
-            disabled={isDeleting}
-            onClick={onDelete}
-            title="Delete"
-            aria-label="Delete"
-          >
-            {isDeleting ? <Spinner className="size-3.5" /> : <Trash2 className="size-3.5" />}
-          </Button>
+        {hasAnything && (
+          <div className="flex items-center gap-1 flex-wrap">
+            {/* Topic */}
+            {topicLoading ? (
+              <span className="inline-flex h-4 w-16 rounded bg-muted/50 animate-pulse" />
+            ) : meta.topic && (
+              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+                <Tag className="size-2.5 shrink-0" />
+                {meta.topic}
+              </span>
+            )}
+            {/* Subtopics */}
+            {subtopicsLoading ? (
+              <span className="inline-flex h-4 w-12 rounded bg-muted/40 animate-pulse" />
+            ) : subtopicList.map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] bg-muted/50 text-muted-foreground/70"
+              >
+                <Hash className="size-2.5 shrink-0" />
+                {s}
+              </span>
+            ))}
+            {/* Pattern */}
+            {patternLoading ? (
+              <span className="inline-flex h-4 w-20 rounded bg-blue-500/10 animate-pulse" />
+            ) : meta.pattern && (
+              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-blue-500/10 text-blue-500 dark:text-blue-400">
+                <MessageSquare className="size-2.5 shrink-0" />
+                {meta.pattern}
+              </span>
+            )}
+            {/* Avatar */}
+            {avatarLoading ? (
+              <span className="inline-flex h-4 w-14 rounded bg-violet-500/10 animate-pulse" />
+            ) : meta.avatar && (
+              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-violet-500/10 text-violet-500 dark:text-violet-400">
+                <UserRound className="size-2.5 shrink-0" />
+                {meta.avatar}
+              </span>
+            )}
+          </div>
         )}
       </div>
+
+      {/* Actions — kebab menu, always visible */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+            disabled={isTogglingStatus || isDeleting}
+          >
+            {isTogglingStatus || isDeleting
+              ? <Spinner className="size-3.5" />
+              : <MoreHorizontal className="size-4" />
+            }
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem onClick={onToggleStatus}>
+            {ml.status === "draft"
+              ? <><Globe className="size-3.5 mr-2" /> Publish</>
+              : <><FileText className="size-3.5 mr-2" /> Unpublish</>
+            }
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onStartEdit}>
+            <Pencil className="size-3.5 mr-2" />
+            Edit
+          </DropdownMenuItem>
+          {onRemoveFromSequence && (
+            <DropdownMenuItem onClick={onRemoveFromSequence}>
+              <X className="size-3.5 mr-2" />
+              Remove from sequence
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={onDelete}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="size-3.5 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -627,7 +691,7 @@ export function MicrolearningsSection() {
 
   function handleDragOver(e: React.DragEvent, groupId: string, index: number) {
     e.preventDefault();
-    e.stopPropagation(); // prevent group-level handler from overriding
+    e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     const beforeIndex = e.clientY < rect.top + rect.height / 2 ? index : index + 1;
     setDropTarget({ groupId, beforeIndex });
@@ -635,7 +699,6 @@ export function MicrolearningsSection() {
 
   function handleGroupDragOver(e: React.DragEvent, groupId: string, itemCount: number) {
     e.preventDefault();
-    // Only fires if no item handler called stopPropagation (i.e. hovering over gap / header / empty area)
     setDropTarget({ groupId, beforeIndex: itemCount });
   }
 
@@ -650,9 +713,8 @@ export function MicrolearningsSection() {
     setDraggingMlId(null);
     setDropTarget(null);
 
-    // Moving to unassigned
     if (toGroup === UNASSIGNED) {
-      if (fromGroup === UNASSIGNED) return; // already unassigned, no-op
+      if (fromGroup === UNASSIGNED) return;
       const srcSeq = sequences.find((s) => s.id === fromGroup);
       const newSourceOrder = srcSeq
         ? srcSeq.microlearnings.filter((m) => m.id !== mlId).map((m) => m.id)
@@ -661,12 +723,10 @@ export function MicrolearningsSection() {
       return;
     }
 
-    // Moving to a sequence
     const targetSeq = sequences.find((s) => s.id === toGroup);
     if (!targetSeq) return;
 
     if (fromGroup === toGroup) {
-      // Reorder within same sequence
       const items = targetSeq.microlearnings;
       const fromIdx = items.findIndex((m) => m.id === mlId);
       if (fromIdx === -1) return;
@@ -674,11 +734,9 @@ export function MicrolearningsSection() {
       const adjustedIdx = fromIdx < beforeIndex ? beforeIndex - 1 : beforeIndex;
       const clamped = Math.max(0, Math.min(adjustedIdx, withoutMl.length));
       withoutMl.splice(clamped, 0, mlId);
-      // No-op if order didn't change
       if (withoutMl.join(",") === items.map((m) => m.id).join(",")) return;
       moveMutation.mutate({ mlId, toGroup, newTargetOrder: withoutMl, fromGroup, newSourceOrder: null });
     } else {
-      // Cross-group move
       const currentTargetIds = targetSeq.microlearnings.map((m) => m.id);
       const clamped = Math.max(0, Math.min(beforeIndex, currentTargetIds.length));
       const newTargetOrder = [...currentTargetIds.slice(0, clamped), mlId, ...currentTargetIds.slice(clamped)];
@@ -703,7 +761,8 @@ export function MicrolearningsSection() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -715,13 +774,13 @@ export function MicrolearningsSection() {
         <div className="flex items-center gap-2">
           {!creatingMl && (
             <Button size="sm" variant="outline" onClick={() => setCreatingMl(true)}>
-              <Plus className="size-4 mr-1" />
+              <Plus className="size-3.5 mr-1.5" />
               New Microlearning
             </Button>
           )}
           {!creatingSeq && (
             <Button size="sm" onClick={() => setCreatingSeq(true)}>
-              <Plus className="size-4 mr-1" />
+              <Plus className="size-3.5 mr-1.5" />
               New Sequence
             </Button>
           )}
@@ -744,18 +803,18 @@ export function MicrolearningsSection() {
       )}
 
       {!isLoading && (
-        <div className="space-y-6">
+        <div className="space-y-8">
 
           {/* ── Sequences ─────────────────────────────────────────────────── */}
           {sequences.length === 0 && !creatingSeq && (
-            <div className="rounded-lg border border-dashed p-6 text-center">
-              <ListOrdered className="size-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm font-medium text-muted-foreground">No sequences yet</p>
+            <div className="rounded-xl border border-dashed p-8 text-center">
+              <ListOrdered className="size-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-medium">No sequences yet</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Create a sequence to start organizing microlearnings.
               </p>
-              <Button size="sm" className="mt-3" onClick={() => setCreatingSeq(true)}>
-                <Plus className="size-3 mr-1" />
+              <Button size="sm" className="mt-4" onClick={() => setCreatingSeq(true)}>
+                <Plus className="size-3.5 mr-1.5" />
                 New Sequence
               </Button>
             </div>
@@ -767,10 +826,11 @@ export function MicrolearningsSection() {
             const isDraggingOver = dropTarget?.groupId === seq.id;
 
             return (
-              <div key={seq.id}>
-                {/* Sequence header */}
-                <div className="flex items-start gap-2 mb-3 group/seq">
-                  <ListOrdered className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+              <div key={seq.id} className="rounded-xl border bg-muted/20 overflow-hidden">
+
+                {/* Sequence header band */}
+                <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
+                  <ListOrdered className="size-4 shrink-0 text-muted-foreground" />
 
                   <div className="flex-1 min-w-0">
                     {isEditingSeq ? (
@@ -782,28 +842,29 @@ export function MicrolearningsSection() {
                         submitLabel="Save"
                       />
                     ) : (
-                      <>
+                      <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">{seq.name}</span>
-                          <Badge variant="secondary" className="text-xs">
+                          <span className="font-semibold text-base leading-none">{seq.name}</span>
+                          <Badge variant="secondary" className="text-xs tabular-nums">
                             {seqMls.length} ML{seqMls.length !== 1 ? "s" : ""}
                           </Badge>
                         </div>
                         {seq.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{seq.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{seq.description}</p>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
 
                   {!isEditingSeq && (
-                    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/seq:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <AssignPopover seqId={seq.id} />
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-7 text-muted-foreground"
+                        className="size-7 text-muted-foreground hover:text-foreground"
                         onClick={() => setEditingSeqId(seq.id)}
+                        title="Edit sequence"
                         aria-label="Edit sequence"
                       >
                         <Pencil className="size-3.5" />
@@ -814,6 +875,7 @@ export function MicrolearningsSection() {
                         className="size-7 text-muted-foreground hover:text-destructive"
                         disabled={deleteSeqMutation.isPending && deleteSeqMutation.variables === seq.id}
                         onClick={() => deleteSeqMutation.mutate(seq.id)}
+                        title="Delete sequence"
                         aria-label="Delete sequence"
                       >
                         {deleteSeqMutation.isPending && deleteSeqMutation.variables === seq.id
@@ -824,20 +886,18 @@ export function MicrolearningsSection() {
                   )}
                 </div>
 
-                {/* Sequence ML list — drop target */}
+                {/* Sequence ML list */}
                 <div
                   onDragOver={(e) => handleGroupDragOver(e, seq.id, seqMls.length)}
                   onDrop={handleDrop}
                   className={[
-                    "ml-6 rounded-lg border transition-colors space-y-1 p-1.5 min-h-14",
-                    isDraggingOver && !dropTarget?.beforeIndex && seqMls.length === 0
-                      ? "border-primary bg-primary/5"
-                      : "border-border",
+                    "p-2 space-y-1.5 min-h-16 transition-colors",
+                    isDraggingOver && seqMls.length === 0 ? "bg-primary/5" : "",
                   ].join(" ")}
                 >
                   {seqMls.length === 0 && !isDraggingOver && (
-                    <div className="flex items-center justify-center h-10">
-                      <p className="text-xs text-muted-foreground">
+                    <div className="flex items-center justify-center h-12">
+                      <p className="text-xs text-muted-foreground/60 italic">
                         Drop microlearnings here
                       </p>
                     </div>
@@ -898,28 +958,27 @@ export function MicrolearningsSection() {
             <Separator />
           )}
 
-          {/* Wrap header + list together so the header area also accepts drops */}
           <div
             onDragOver={(e) => handleGroupDragOver(e, UNASSIGNED, unassigned.length)}
             onDrop={handleDrop}
           >
             {/* Unassigned header */}
             <div className="flex items-center gap-2 mb-3">
-              <BookOpen className="size-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Unassigned</span>
+              <BookOpen className="size-4 text-muted-foreground/60" />
+              <span className="text-sm font-medium text-muted-foreground/80 italic">Unassigned</span>
               {unassigned.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="outline" className="text-xs text-muted-foreground border-dashed">
                   {unassigned.length}
                 </Badge>
               )}
             </div>
 
-            {/* Unassigned list — always has min-height during drag so it's targetable when empty */}
+            {/* Unassigned list */}
             <div
               className={[
-                "space-y-1",
+                "space-y-1.5",
                 draggingMlId
-                  ? "min-h-12 rounded-lg border border-dashed p-1.5 transition-colors"
+                  ? "min-h-14 rounded-xl border border-dashed p-2 transition-colors"
                   : "",
                 draggingMlId && dropTarget?.groupId === UNASSIGNED
                   ? "border-primary bg-primary/5"
@@ -929,7 +988,7 @@ export function MicrolearningsSection() {
               ].join(" ")}
             >
               {unassigned.length === 0 && !draggingMlId && (
-                <p className="text-xs text-muted-foreground py-1">
+                <p className="text-xs text-muted-foreground/60 italic py-1">
                   All microlearnings are assigned to sequences.
                 </p>
               )}
@@ -986,7 +1045,7 @@ export function MicrolearningsSection() {
                 />
               ) : (
                 <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setCreatingMl(true)}>
-                  <Plus className="size-3 mr-1" />
+                  <Plus className="size-3.5 mr-1.5" />
                   New Microlearning
                 </Button>
               )}
