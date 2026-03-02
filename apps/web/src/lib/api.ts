@@ -180,6 +180,30 @@ export interface Microlearning {
   updatedAt: string;
 }
 
+export interface MicrolearningProgress {
+  id: string;
+  userId: string;
+  microlearningId: string;
+  status: "active" | "completed" | "expired";
+  openedAt: string;
+  completedAt: string | null;
+  expiredAt: string | null;
+}
+
+export interface MicrolearningWithDetails extends Microlearning {
+  avatar: Avatar | null;
+  topic: { id: string; name: string } | null;
+  progress: MicrolearningProgress | null;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  role: "admin" | "user";
+  organizationId: string;
+  preferredAvatarId: string | null;
+}
+
 export interface UserGroup {
   id: string;
   organizationId: string;
@@ -374,6 +398,11 @@ export const api = {
       request<{ success: boolean }>(`/microlearnings/sequences/${seqId}/assignments/${groupId}`, {
         method: "DELETE",
       }),
+    // User-facing endpoints
+    myMicrolearnings: () =>
+      request<{ microlearnings: MicrolearningWithDetails[] }>("/microlearnings/my"),
+    getById: (id: string) =>
+      request<{ microlearning: MicrolearningWithDetails; progress: MicrolearningProgress | null }>(`/microlearnings/${id}`),
   },
   userGroups: {
     list: () =>
@@ -414,6 +443,15 @@ export const api = {
       request<{ success: boolean }>(`/team/${userId}/regenerate-token`, { method: "POST" }),
     remove: (userId: string) =>
       request<{ success: boolean }>(`/team/${userId}`, { method: "DELETE" }),
+  },
+  user: {
+    me: () =>
+      request<{ user: UserProfile }>("/user/me"),
+    updatePreferences: (body: { preferredAvatarId: string | null }) =>
+      request<{ user: UserProfile }>("/user/preferences", {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
   },
   org: {
     getConfig: () => request<OrgConfig>("/org/config"),

@@ -17,12 +17,14 @@ export async function saveChat({
   userId,
   organizationId,
   type,
+  microlearningId,
 }: {
   chatId: string;
   messages: UIMessage[];
   userId: string;
   organizationId: string;
   type: ChatType;
+  microlearningId?: string;
 }): Promise<void> {
 
   try {
@@ -37,6 +39,7 @@ export async function saveChat({
         userId,
         organizationId,
         type,
+        microlearningId: microlearningId ?? null,
       })
       .onConflictDoUpdate({
         target: chats.id,

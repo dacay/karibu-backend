@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { Keyboard, Mic } from "lucide-react";
+import { Keyboard, Mic, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 import { ChatAgentAvatar } from "./ChatAgentAvatar";
@@ -29,9 +30,11 @@ function extractText(message: UIMessage): string {
 export function ChatInterface({
   endpoint,
   chatId,
+  microlearningId,
   avatar,
   autoPlayVoice = false,
   className,
+  onComplete,
 }: ChatConfig) {
 
   const resolvedAvatar = { ...DEFAULT_AVATAR, ...avatar };
@@ -39,11 +42,12 @@ export function ChatInterface({
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<"text" | "voice">("text");
   const [voicePaused, setVoicePaused] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const { speak, stop, isSpeaking } = useTTS();
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, data } = useChat({
     id: chatId,
     transport: new DefaultChatTransport({
       api: endpoint,
@@ -51,9 +55,29 @@ export function ChatInterface({
         const token = getToken();
         return token ? { Authorization: `Bearer ${token}` } : {};
       },
-      body: { chatId },
+      body: {
+        chatId,
+        ...(microlearningId ? { microlearningId } : {}),
+      },
     }),
   });
+
+  // Watch data stream for completion signal from the backend
+  useEffect(() => {
+    if (!data || isCompleted) return;
+    for (const item of data) {
+      if (
+        item &&
+        typeof item === "object" &&
+        "type" in item &&
+        (item as { type: string }).type === "ml_completed"
+      ) {
+        setIsCompleted(true);
+        onComplete?.();
+        break;
+      }
+    }
+  }, [data, isCompleted, onComplete]);
 
   const isLoading = status === "submitted" || status === "streaming";
 
@@ -185,6 +209,12 @@ export function ChatInterface({
             <p className="text-xs text-muted-foreground">Speaking...</p>
           )}
         </div>
+        {isCompleted && (
+          <Badge variant="outline" className="shrink-0 gap-1 border-green-500 text-green-600">
+            <CheckCircle2 className="size-3" />
+            Completed
+          </Badge>
+        )}
         <Button
           type="button"
           variant={mode === "voice" ? "default" : "outline"}
