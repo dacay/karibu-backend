@@ -18,6 +18,8 @@ export const organizations = pgTable('organizations', {
   name: text('name').notNull(),
   subdomain: text('subdomain').notNull().unique(),
   pronunciation: text('pronunciation'),
+  learnerTerm: text('learner_term').notNull().default('user'),
+  learnerTermPlural: text('learner_term_plural').notNull().default('users'),
   ...timestamps,
 });
 

@@ -26,6 +26,8 @@ const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 const updateConfigSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   pronunciation: z.string().max(200).optional().nullable(),
+  learnerTerm: z.string().min(1).max(50).optional(),
+  learnerTermPlural: z.string().min(1).max(50).optional(),
 });
 
 /**
@@ -43,6 +45,8 @@ org.get('/config', async (c) => {
         name: organizations.name,
         subdomain: organizations.subdomain,
         pronunciation: organizations.pronunciation,
+        learnerTerm: organizations.learnerTerm,
+        learnerTermPlural: organizations.learnerTermPlural,
       })
       .from(organizations)
       .where(eq(organizations.id, organization.id))
@@ -83,6 +87,14 @@ org.patch('/config', zValidator('json', updateConfigSchema), async (c) => {
       updates.pronunciation = body.pronunciation;
     }
 
+    if (body.learnerTerm !== undefined) {
+      updates.learnerTerm = body.learnerTerm;
+    }
+
+    if (body.learnerTermPlural !== undefined) {
+      updates.learnerTermPlural = body.learnerTermPlural;
+    }
+
     if (Object.keys(updates).length === 0) {
       return c.json({ error: 'No fields to update.' }, 400);
     }
@@ -95,6 +107,8 @@ org.patch('/config', zValidator('json', updateConfigSchema), async (c) => {
         name: organizations.name,
         subdomain: organizations.subdomain,
         pronunciation: organizations.pronunciation,
+        learnerTerm: organizations.learnerTerm,
+        learnerTermPlural: organizations.learnerTermPlural,
       });
 
     logger.info({ organizationId: organization.id }, 'Org config updated.');

@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { api, type DashboardMetrics } from "@/lib/api";
+import { api, type DashboardMetrics, type OrgConfig } from "@/lib/api";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ function MetricRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function LoadedDashboard({ data }: { data: DashboardMetrics }) {
+function LoadedDashboard({ data, orgConfig }: { data: DashboardMetrics; orgConfig: OrgConfig | undefined }) {
   const {
     usageFrequency,
     sessionDuration,
@@ -112,7 +112,11 @@ function LoadedDashboard({ data }: { data: DashboardMetrics }) {
     completionsThisMonth,
   } = data;
 
-  // Top-20 rows for the nurse message table
+  const term = orgConfig?.learnerTerm ?? "user";
+  const termPlural = orgConfig?.learnerTermPlural ?? "users";
+  const Term = term.charAt(0).toUpperCase() + term.slice(1);
+
+  // Top-20 rows for the learner message table
   const nurseTableRows = messagesPerDayPerNurse.slice(0, 20);
 
   // Sessions-per-day for the last 14 entries (already sorted desc from API)
@@ -177,7 +181,7 @@ function LoadedDashboard({ data }: { data: DashboardMetrics }) {
           <CardContent>
             <p className="text-3xl font-bold">{returnVisits.percentOfLearners}%</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {returnVisits.total} of {returnVisits.totalLearners} nurses returned
+              {returnVisits.total} of {returnVisits.totalLearners} {termPlural} returned
             </p>
           </CardContent>
         </Card>
@@ -244,7 +248,7 @@ function LoadedDashboard({ data }: { data: DashboardMetrics }) {
           </CardHeader>
           <CardContent>
             <div className="divide-y mb-3">
-              <MetricRow label="Total nurses" value={String(returnVisits.totalLearners)} />
+              <MetricRow label={`Total ${termPlural}`} value={String(returnVisits.totalLearners)} />
               <MetricRow
                 label="Returned with new question"
                 value={`${returnVisits.total} (${returnVisits.percentOfLearners}%)`}
@@ -270,14 +274,14 @@ function LoadedDashboard({ data }: { data: DashboardMetrics }) {
         </Card>
       </div>
 
-      {/* ── Bottom row: per-nurse table + sessions per day ───────────────── */}
+      {/* ── Bottom row: per-learner table + sessions per day ────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* iii. Messages per day per nurse */}
+        {/* iii. Messages per day per learner */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <MessageSquare className="size-4" />
-              Messages Per Day Per Nurse
+              Messages Per Day Per {Term}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -288,7 +292,7 @@ function LoadedDashboard({ data }: { data: DashboardMetrics }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs text-muted-foreground border-b">
-                      <th className="pb-2 font-medium">Nurse</th>
+                      <th className="pb-2 font-medium">{Term}</th>
                       <th className="pb-2 font-medium">Date</th>
                       <th className="pb-2 font-medium text-right">Messages</th>
                     </tr>
@@ -369,6 +373,11 @@ export function DashboardSection() {
     queryFn: () => api.metrics.get(),
   });
 
+  const { data: orgConfig } = useQuery({
+    queryKey: ["org", "config"],
+    queryFn: api.org.getConfig,
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -408,7 +417,7 @@ export function DashboardSection() {
         </Card>
       )}
 
-      {data && <LoadedDashboard data={data} />}
+      {data && <LoadedDashboard data={data} orgConfig={orgConfig} />}
     </div>
   );
 }

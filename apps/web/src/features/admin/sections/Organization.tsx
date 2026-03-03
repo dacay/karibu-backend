@@ -142,17 +142,21 @@ export function OrganizationSection() {
 
   const [name, setName] = useState("");
   const [pronunciation, setPronunciation] = useState("");
+  const [learnerTerm, setLearnerTerm] = useState("user");
+  const [learnerTermPlural, setLearnerTermPlural] = useState("users");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     if (config) {
       setName(config.name);
       setPronunciation(config.pronunciation ?? "");
+      setLearnerTerm(config.learnerTerm);
+      setLearnerTermPlural(config.learnerTermPlural);
     }
   }, [config]);
 
   const updateMutation = useMutation({
-    mutationFn: (body: { name?: string; pronunciation?: string | null }) =>
+    mutationFn: (body: { name?: string; pronunciation?: string | null; learnerTerm?: string; learnerTermPlural?: string }) =>
       api.org.updateConfig(body),
     onMutate: () => setSaveStatus("saving"),
     onSuccess: (updated) => {
@@ -170,12 +174,16 @@ export function OrganizationSection() {
     updateMutation.mutate({
       name: name.trim(),
       pronunciation: pronunciation.trim() || null,
+      learnerTerm: learnerTerm.trim() || "user",
+      learnerTermPlural: learnerTermPlural.trim() || "users",
     });
   }
 
   const isDirty =
     name !== (config?.name ?? "") ||
-    pronunciation !== (config?.pronunciation ?? "");
+    pronunciation !== (config?.pronunciation ?? "") ||
+    learnerTerm !== (config?.learnerTerm ?? "user") ||
+    learnerTermPlural !== (config?.learnerTermPlural ?? "users");
 
   return (
     <div className="space-y-6">
@@ -231,6 +239,32 @@ export function OrganizationSection() {
                   Phonetic hint used by AI avatars when saying your org name.
                 </p>
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="learner-term">Learner term</Label>
+                  <Input
+                    id="learner-term"
+                    value={learnerTerm}
+                    onChange={(e) => setLearnerTerm(e.target.value)}
+                    placeholder="user"
+                    maxLength={50}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="learner-term-plural">Plural</Label>
+                  <Input
+                    id="learner-term-plural"
+                    value={learnerTermPlural}
+                    onChange={(e) => setLearnerTermPlural(e.target.value)}
+                    placeholder="users"
+                    maxLength={50}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground -mt-1">
+                How learners are referred to in the dashboard (e.g. nurse / nurses).
+              </p>
 
               <div className="flex items-center gap-3 pt-1">
                 <Button

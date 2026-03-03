@@ -253,6 +253,8 @@ export interface OrgConfig {
   name: string;
   subdomain: string;
   pronunciation: string | null;
+  learnerTerm: string;
+  learnerTermPlural: string;
 }
 
 export interface DashboardMetrics {
@@ -494,7 +496,7 @@ export const api = {
   },
   org: {
     getConfig: () => request<OrgConfig>("/org/config"),
-    updateConfig: (body: { name?: string; pronunciation?: string | null }) =>
+    updateConfig: (body: { name?: string; pronunciation?: string | null; learnerTerm?: string; learnerTermPlural?: string }) =>
       request<OrgConfig>("/org/config", {
         method: "PATCH",
         body: JSON.stringify(body),
