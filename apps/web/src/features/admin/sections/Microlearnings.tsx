@@ -277,11 +277,11 @@ function MlForm({
         </div>
       </div>
 
-      {selectedTopic && selectedTopic.subtopics.length > 0 && (
+      {selectedTopic && selectedTopic.subtopics.filter((s) => s.values.some((v) => v.approval === "approved")).length > 0 && (
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Subtopics</label>
           <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-background">
-            {selectedTopic.subtopics.map((s) => (
+            {selectedTopic.subtopics.filter((s) => s.values.some((v) => v.approval === "approved")).map((s) => (
               <label key={s.id} className="flex items-center gap-1.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
