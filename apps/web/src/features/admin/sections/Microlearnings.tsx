@@ -304,7 +304,7 @@ function MlForm({
       </div>
 
       <div className="flex gap-2">
-        <Button size="sm" disabled={!title.trim() || !topicId || !patternId || !avatarId || isLoading} onClick={() => onSave({ title, topicId, subtopicIds, patternId, avatarId })}>
+        <Button size="sm" disabled={!title.trim() || !topicId || !patternId || !avatarId || isLoading} onClick={() => { if (!title.trim() || !topicId || !patternId || !avatarId) return; onSave({ title, topicId, subtopicIds, patternId, avatarId }); }}>
           {isLoading ? <Spinner className="size-3 mr-1" /> : null}
           {submitLabel}
         </Button>
