@@ -23,8 +23,9 @@ const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 /**
  * GET /avatars
  * List all built-in avatars and org-specific avatars.
+ * Accessible to all authenticated users (learners need this to select avatar preferences).
  */
-avatarsRouter.get('/', requireRole('admin'), async (c) => {
+avatarsRouter.get('/', async (c) => {
 
   const auth = c.get('auth');
 
