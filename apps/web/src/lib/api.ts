@@ -180,6 +180,30 @@ export interface Microlearning {
   updatedAt: string;
 }
 
+export interface MicrolearningProgress {
+  id: string;
+  userId: string;
+  microlearningId: string;
+  status: "active" | "completed" | "expired";
+  openedAt: string;
+  completedAt: string | null;
+  expiredAt: string | null;
+}
+
+export interface MicrolearningWithDetails extends Microlearning {
+  avatar: Avatar | null;
+  topic: { id: string; name: string } | null;
+  progress: MicrolearningProgress | null;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  role: "admin" | "user";
+  organizationId: string;
+  preferredAvatarId: string | null;
+}
+
 export interface UserGroup {
   id: string;
   organizationId: string;
@@ -344,34 +368,41 @@ export const api = {
       }),
     delete: (id: string) =>
       request<{ success: boolean }>(`/microlearnings/${id}`, { method: "DELETE" }),
-    listSequences: () =>
-      request<{ sequences: MicrolearningSequence[] }>("/microlearnings/sequences"),
-    createSequence: (body: { name: string; description?: string }) =>
-      request<{ sequence: MicrolearningSequence }>("/microlearnings/sequences", {
+    // User-facing endpoints
+    myMicrolearnings: () =>
+      request<{ microlearnings: MicrolearningWithDetails[] }>("/microlearnings/my"),
+    getById: (id: string) =>
+      request<{ microlearning: MicrolearningWithDetails; progress: MicrolearningProgress | null }>(`/microlearnings/${id}`),
+  },
+  sequences: {
+    list: () =>
+      request<{ sequences: MicrolearningSequence[] }>("/sequences"),
+    create: (body: { name: string; description?: string }) =>
+      request<{ sequence: MicrolearningSequence }>("/sequences", {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    updateSequence: (id: string, body: { name?: string; description?: string }) =>
-      request<{ sequence: MicrolearningSequence }>(`/microlearnings/sequences/${id}`, {
+    update: (id: string, body: { name?: string; description?: string }) =>
+      request<{ sequence: MicrolearningSequence }>(`/sequences/${id}`, {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
-    deleteSequence: (id: string) =>
-      request<{ success: boolean }>(`/microlearnings/sequences/${id}`, { method: "DELETE" }),
-    reorderSequence: (id: string, microlearningIds: string[]) =>
-      request<{ success: boolean }>(`/microlearnings/sequences/${id}/reorder`, {
-        method: "PUT",
+    delete: (id: string) =>
+      request<{ success: boolean }>(`/sequences/${id}`, { method: "DELETE" }),
+    reorder: (id: string, microlearningIds: string[]) =>
+      request<{ success: boolean }>(`/sequences/${id}/reorder`, {
+        method: "PATCH",
         body: JSON.stringify({ microlearningIds }),
       }),
-    listAssignments: (seqId: string) =>
-      request<{ assignments: SequenceAssignment[] }>(`/microlearnings/sequences/${seqId}/assignments`),
-    assign: (seqId: string, groupId: string) =>
-      request<{ assignment: SequenceAssignment }>(`/microlearnings/sequences/${seqId}/assignments`, {
+    listAssignments: (id: string) =>
+      request<{ assignments: SequenceAssignment[] }>(`/sequences/${id}/assignments`),
+    assign: (id: string, groupId: string) =>
+      request<{ assignment: SequenceAssignment }>(`/sequences/${id}/assignments`, {
         method: "POST",
         body: JSON.stringify({ groupId }),
       }),
-    unassign: (seqId: string, groupId: string) =>
-      request<{ success: boolean }>(`/microlearnings/sequences/${seqId}/assignments/${groupId}`, {
+    unassign: (id: string, groupId: string) =>
+      request<{ success: boolean }>(`/sequences/${id}/assignments/${groupId}`, {
         method: "DELETE",
       }),
   },
@@ -414,6 +445,15 @@ export const api = {
       request<{ success: boolean }>(`/team/${userId}/regenerate-token`, { method: "POST" }),
     remove: (userId: string) =>
       request<{ success: boolean }>(`/team/${userId}`, { method: "DELETE" }),
+  },
+  user: {
+    me: () =>
+      request<{ user: UserProfile }>("/user/me"),
+    updatePreferences: (body: { preferredAvatarId: string | null }) =>
+      request<{ user: UserProfile }>("/user/preferences", {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
   },
   org: {
     getConfig: () => request<OrgConfig>("/org/config"),
