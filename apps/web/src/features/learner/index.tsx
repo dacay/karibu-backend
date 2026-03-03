@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/useAuth";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
@@ -26,12 +26,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { api, type MicrolearningWithDetails } from "@/lib/api";
 
-const ASSETS_CDN_BASE = process.env.NEXT_PUBLIC_ASSETS_CDN_URL ?? "https://cdn.karibu.ai";
-
-function getAvatarImageUrl(imageS3Key: string | null): string | null {
-  return imageS3Key ? `${ASSETS_CDN_BASE}/${imageS3Key}` : null;
-}
-
 const APPEARANCE_OPTIONS: { value: string; label: string; icon: React.ElementType }[] = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
@@ -50,7 +44,6 @@ function getInitials(email: string): string {
 function MicrolearningCard({ ml }: { ml: MicrolearningWithDetails }) {
   const router = useRouter();
   const isCompleted = ml.progress?.status === "completed";
-  const avatarImageUrl = getAvatarImageUrl(ml.avatar?.imageS3Key ?? null);
 
   return (
     <button
@@ -58,15 +51,6 @@ function MicrolearningCard({ ml }: { ml: MicrolearningWithDetails }) {
       onClick={() => router.push(`/ml/${ml.id}`)}
       className="flex items-start gap-4 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-full"
     >
-      <Avatar className="size-10 shrink-0">
-        {avatarImageUrl && (
-          <AvatarImage src={avatarImageUrl} alt={ml.avatar?.name ?? "Avatar"} />
-        )}
-        <AvatarFallback className="text-xs">
-          {ml.avatar?.name?.slice(0, 2).toUpperCase() ?? "ML"}
-        </AvatarFallback>
-      </Avatar>
-
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-medium truncate">{ml.title}</p>
