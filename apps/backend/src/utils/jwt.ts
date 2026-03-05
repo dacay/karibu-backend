@@ -62,12 +62,21 @@ export const verifyToken = async (token: string): Promise<JWTPayload> => {
 
     const payload = await verify(token, env.JWT_SECRET, env.JWT_ALGORITHM);
 
+    const aud = payload.aud;
+    const isValidAud = Array.isArray(aud)
+      ? aud.includes(env.JWT_AUDIENCE)
+      : aud === env.JWT_AUDIENCE;
+
+    if (!isValidAud) {
+      throw new Error('Invalid audience');
+    }
+
     return payload as JWTPayload;
 
   } catch (err) {
 
     logger.error({ err }, 'Failed to verify JWT token.');
-    
+
     throw new Error('Invalid or expired token');
   }
 }

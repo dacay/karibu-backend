@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+function getApiUrl(requestHost: string): string {
+  const template = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+  if (!template.includes("{subdomain}")) return template;
+  const subdomain = requestHost.split(".")[0].split(":")[0];
+  return template.replace("{subdomain}", subdomain);
+}
 
 const PENDING_COOKIE = "karibu_pending_token";
 const SUBDOMAIN_COOKIE = "karibu_subdomain";
@@ -36,7 +40,7 @@ export async function middleware(request: NextRequest) {
   if (!token) return response;
 
   try {
-    const res = await fetch(`${API_URL}/auth/login`, {
+    const res = await fetch(`${getApiUrl(host ?? "")}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
