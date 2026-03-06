@@ -431,7 +431,7 @@ const ttsSchema = z.object({
   voiceId: z.string().min(1).optional(),
 });
 
-const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // ElevenLabs "Rachel"
+const DEFAULT_VOICE_ID = process.env.DEFAULT_VOICE_ID ?? '56AoDkrOh6qfVPDXZ7Pt'; // ElevenLabs "Cassidy"
 
 /**
  * POST /chat/tts

@@ -4,8 +4,8 @@ import { getApiBaseUrl } from "@/lib/api";
 // Resolved once per page load from window.location.hostname (see getApiBaseUrl)
 const BASE_URL = getApiBaseUrl();
 
-// ElevenLabs "Rachel" — used when no voiceId is provided in the avatar config
-export const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
+// ElevenLabs "Cassidy" — used when no voiceId is provided in the avatar config
+export const DEFAULT_VOICE_ID = process.env.NEXT_PUBLIC_DEFAULT_VOICE_ID ?? "56AoDkrOh6qfVPDXZ7Pt";
 
 export const DEFAULT_AVATAR: ChatAvatar = {
   voiceId: DEFAULT_VOICE_ID,

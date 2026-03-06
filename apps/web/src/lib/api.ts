@@ -159,7 +159,7 @@ export interface ElevenLabsVoice {
 
 export const ELEVENLABS_VOICES: ElevenLabsVoice[] = [
   // Female voices
-  { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", gender: "female", description: "Calm, professional" },
+  { id: "56AoDkrOh6qfVPDXZ7Pt", name: "Cassidy", gender: "female", description: "Crisp, direct and clear" },
   { id: "AZnzlk1XvdvUeBnXmlld", name: "Domi", gender: "female", description: "Strong, expressive" },
   { id: "EXAVITQu4vr4xnSDxMaL", name: "Bella", gender: "female", description: "Soft, pleasant" },
   { id: "MF3mGyEYCl7XYWbV9V6O", name: "Elli", gender: "female", description: "Warm, emotional" },
