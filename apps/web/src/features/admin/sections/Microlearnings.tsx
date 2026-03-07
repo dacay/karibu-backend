@@ -18,6 +18,7 @@ import {
   Hash,
   MessageSquare,
   UserRound,
+  FlaskConical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -529,6 +530,13 @@ function MlRow({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem asChild>
+            <a href={`/ml/${ml.id}`} target="_blank" rel="noopener noreferrer">
+              <FlaskConical className="size-3.5 mr-2" />
+              Test
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={onToggleStatus}>
             {ml.status === "draft"
               ? <><Globe className="size-3.5 mr-2" /> Publish</>
