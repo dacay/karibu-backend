@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Trash2,
   ShieldCheck,
+  ShieldPlus,
   AlertCircle,
   CheckCircle2,
   Clock,
@@ -284,15 +285,45 @@ function InviteForm({ onClose }: InviteFormProps) {
 
 interface MemberActionsProps {
   member: TeamMember;
-  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink", id: string) => void;
+  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink" | "makeAdmin", id: string) => void;
   isPending: boolean;
   copiedUserId: string | null;
 }
 
 function MemberActions({ member, onAction, isPending, copiedUserId }: MemberActionsProps) {
+  const [confirmingAdmin, setConfirmingAdmin] = useState(false);
+
   if (member.role === "admin") return null;
 
   const isCopied = copiedUserId === member.id;
+
+  if (confirmingAdmin) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">Make admin?</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs text-violet-700 hover:text-violet-900 hover:bg-violet-50"
+          disabled={isPending}
+          onClick={() => {
+            setConfirmingAdmin(false);
+            onAction("makeAdmin", member.id);
+          }}
+        >
+          Confirm
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6 text-muted-foreground"
+          onClick={() => setConfirmingAdmin(false)}
+        >
+          <X className="size-3.5" />
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1">
@@ -329,6 +360,16 @@ function MemberActions({ member, onAction, isPending, copiedUserId }: MemberActi
       <Button
         variant="ghost"
         size="icon"
+        className="size-7 text-muted-foreground hover:text-violet-600"
+        title="Make admin"
+        disabled={isPending}
+        onClick={() => setConfirmingAdmin(true)}
+      >
+        <ShieldPlus className="size-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
         className="size-7 text-muted-foreground hover:text-destructive"
         title="Remove from team"
         disabled={isPending}
@@ -346,7 +387,7 @@ interface MemberRowProps {
   member: TeamMember;
   isLast: boolean;
   isPending: boolean;
-  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink", id: string) => void;
+  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink" | "makeAdmin", id: string) => void;
   copiedUserId: string | null;
 }
 
@@ -425,7 +466,19 @@ export function TeamSection() {
     },
   });
 
-  const handleAction = (action: "resend" | "regenerate" | "remove" | "copyLink", userId: string) => {
+  const makeAdminMutation = useMutation({
+    mutationFn: (userId: string) => api.team.makeAdmin(userId),
+    onSuccess: () => {
+      setPendingUserId(null);
+      queryClient.invalidateQueries({ queryKey: ["team"] });
+    },
+    onError: (err) => {
+      setActionError((err as Error).message);
+      setPendingUserId(null);
+    },
+  });
+
+  const handleAction = (action: "resend" | "regenerate" | "remove" | "copyLink" | "makeAdmin", userId: string) => {
     setActionError(null);
 
     if (action === "copyLink") {
@@ -445,6 +498,7 @@ export function TeamSection() {
     setPendingUserId(userId);
     if (action === "resend") resendMutation.mutate(userId);
     else if (action === "regenerate") regenerateMutation.mutate(userId);
+    else if (action === "makeAdmin") makeAdminMutation.mutate(userId);
     else removeMutation.mutate(userId);
   };
 

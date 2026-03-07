@@ -358,6 +358,53 @@ teamRouter.post('/:userId/regenerate-token', async (c) => {
 })
 
 /**
+ * PATCH /team/:userId/role
+ * Promote a regular user to admin role.
+ */
+teamRouter.patch('/:userId/role', async (c) => {
+
+  const auth = c.get('auth');
+  const userId = c.req.param('userId');
+
+  // Cannot change your own role
+  if (userId === auth.userId) {
+
+    return c.json({ error: 'Cannot change your own role.' }, 400);
+  }
+
+  // Verify user belongs to this organization
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(
+      and(
+        eq(users.id, userId),
+        eq(users.organizationId, auth.organizationId)
+      )
+    )
+    .limit(1);
+
+  if (!user) {
+
+    return c.json({ error: 'User not found.' }, 404);
+  }
+
+  if (user.role === 'admin') {
+
+    return c.json({ error: 'User is already an admin.' }, 400);
+  }
+
+  await db
+    .update(users)
+    .set({ role: 'admin' })
+    .where(eq(users.id, userId));
+
+  logger.info({ userId, email: user.email, organizationId: auth.organizationId }, 'User promoted to admin.');
+
+  return c.json({ success: true });
+})
+
+/**
  * DELETE /team/:userId
  * Remove a user from the organization. Cannot remove admin users.
  */

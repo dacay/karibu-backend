@@ -491,6 +491,8 @@ export const api = {
       request<{ success: boolean }>(`/team/${userId}/regenerate-token`, { method: "POST" }),
     remove: (userId: string) =>
       request<{ success: boolean }>(`/team/${userId}`, { method: "DELETE" }),
+    makeAdmin: (userId: string) =>
+      request<{ success: boolean }>(`/team/${userId}/role`, { method: "PATCH" }),
   },
   user: {
     me: () =>
