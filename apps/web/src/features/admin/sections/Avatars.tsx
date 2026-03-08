@@ -128,7 +128,7 @@ function ImagePicker({ previewUrl, onFileChange }: ImagePickerProps) {
     <div className="flex items-center gap-4">
       <div className="size-20 shrink-0 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
         {previewUrl ? (
-          <Image src={previewUrl} alt="Avatar preview" width={80} height={80} className="object-cover size-full" />
+          <Image src={previewUrl} alt="Avatar preview" width={80} height={80} className="object-cover size-full" unoptimized />
         ) : (
           <UserCircle className="size-10 text-muted-foreground" />
         )}
