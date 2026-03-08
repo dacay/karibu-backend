@@ -9,8 +9,7 @@ import { ChatInterface } from "@/features/chat";
 import { CHAT_ENDPOINTS } from "@/features/chat";
 import { api } from "@/lib/api";
 import type { ChatAvatar } from "@/features/chat";
-
-const ASSETS_CDN_BASE = process.env.NEXT_PUBLIC_ASSETS_CDN_URL ?? "https://cdn.karibu.ai";
+import { getAssetUrl } from "@/lib/assets";
 
 export default function ChatPage() {
 
@@ -49,7 +48,7 @@ export default function ChatPage() {
     return {
       name: found.name,
       voiceId: found.voiceId,
-      image: found.imageS3Key ? `${ASSETS_CDN_BASE}/${found.imageS3Key}` : undefined,
+      image: found.imageS3Key ? getAssetUrl(found.imageS3Key) : undefined,
     };
   }, [profileData, avatarsData]);
 

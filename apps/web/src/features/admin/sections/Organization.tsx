@@ -7,13 +7,13 @@ import Image from "next/image";
 import { api, type OrgConfig } from "@/lib/api";
 import { useSubdomain } from "@/hooks/useSubdomain";
 import { useBumpLogoVersion } from "@/hooks/useLogoVersion";
+import { getLogoUrl } from "@/lib/assets";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
-const ASSETS_CDN_BASE = process.env.NEXT_PUBLIC_ASSETS_CDN_URL ?? "https://cdn.karibu.ai";
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
 
 type UploadStatus = "idle" | "uploading" | "done" | "error";
@@ -31,9 +31,7 @@ function LogoUpload({ variant, subdomain }: LogoUploadProps) {
   const [cacheBust, setCacheBust] = useState<number | null>(null);
   const bumpLogoVersion = useBumpLogoVersion();
 
-  const cdnPath = subdomain
-    ? `${ASSETS_CDN_BASE}/${subdomain}/logo-${variant}.png`
-    : null;
+  const cdnPath = subdomain ? getLogoUrl(subdomain, variant) : null;
 
   const previewSrc = cdnPath
     ? cacheBust

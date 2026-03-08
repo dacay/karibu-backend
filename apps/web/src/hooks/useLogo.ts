@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSubdomain } from "./useSubdomain";
 import { useLogoVersion } from "./useLogoVersion";
-
-const ASSETS_CDN_BASE = process.env.NEXT_PUBLIC_ASSETS_CDN_URL ?? "https://cdn.karibu.ai";
+import { getLogoUrl } from "@/lib/assets";
 
 const FALLBACK_LIGHT = "/logo-light.png";
 const FALLBACK_DARK = "/logo-dark.png";
@@ -18,8 +17,8 @@ export function useLogo() {
 
   useEffect(() => {
     const suffix = version ? `?v=${version}` : "";
-    const cdnLight = subdomain ? `${ASSETS_CDN_BASE}/${subdomain}/logo-light.png${suffix}` : null;
-    const cdnDark = subdomain ? `${ASSETS_CDN_BASE}/${subdomain}/logo-dark.png${suffix}` : null;
+    const cdnLight = subdomain ? `${getLogoUrl(subdomain, "light")}${suffix}` : null;
+    const cdnDark = subdomain ? `${getLogoUrl(subdomain, "dark")}${suffix}` : null;
 
     setLightSrc(cdnLight ?? FALLBACK_LIGHT);
     setDarkSrc(cdnDark ?? FALLBACK_DARK);

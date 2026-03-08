@@ -31,11 +31,10 @@ import { CHAT_ENDPOINTS } from "@/features/chat";
 import { api, type Avatar as AvatarType } from "@/lib/api";
 import type { ChatAvatar } from "@/features/chat";
 import type { UIMessage } from "ai";
-
-const ASSETS_CDN_BASE = process.env.NEXT_PUBLIC_ASSETS_CDN_URL ?? "https://cdn.karibu.ai";
+import { getAssetUrl } from "@/lib/assets";
 
 function getAvatarImageUrl(imageS3Key: string | null): string | null {
-  return imageS3Key ? `${ASSETS_CDN_BASE}/${imageS3Key}` : null;
+  return imageS3Key ? getAssetUrl(imageS3Key) : null;
 }
 
 function buildChatAvatar(avatar: AvatarType | null): ChatAvatar | undefined {

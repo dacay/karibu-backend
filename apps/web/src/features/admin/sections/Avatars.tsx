@@ -14,11 +14,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { Separator } from "@/components/ui/separator";
 import { api, type Avatar, ELEVENLABS_VOICES } from "@/lib/api";
 import { useTTS } from "@/features/chat/hooks/useTTS";
-
-const ASSETS_CDN_BASE = process.env.NEXT_PUBLIC_ASSETS_CDN_URL ?? "https://cdn.karibu.ai";
+import { getAssetUrl } from "@/lib/assets";
 
 function getAvatarImageUrl(avatar: Avatar): string | null {
-  return avatar.imageS3Key ? `${ASSETS_CDN_BASE}/${avatar.imageS3Key}` : null;
+  return avatar.imageS3Key ? getAssetUrl(avatar.imageS3Key) : null;
 }
 
 // ─── Voice selector ────────────────────────────────────────────────────────────
