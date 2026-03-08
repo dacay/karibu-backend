@@ -109,13 +109,12 @@ export function AdminRoot() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div>
+                  <div className="relative w-32 h-10">
                     <Image
                       src={lightSrc}
                       alt="Logo"
-                      width={96}
-                      height={32}
-                      className="block dark:hidden"
+                      fill
+                      className="block dark:hidden object-contain"
                       onError={onLightError}
                       unoptimized
                       priority
@@ -123,9 +122,8 @@ export function AdminRoot() {
                     <Image
                       src={darkSrc}
                       alt="Logo"
-                      width={96}
-                      height={32}
-                      className="hidden dark:block"
+                      fill
+                      className="hidden dark:block object-contain"
                       onError={onDarkError}
                       unoptimized
                       priority
