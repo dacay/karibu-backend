@@ -174,7 +174,7 @@ export default function MicrolearningChatPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.back()}
+            onClick={() => user?.role === "admin" ? router.push("/microlearnings") : router.back()}
             aria-label="Go back"
           >
             <ArrowLeft className="size-4" />
