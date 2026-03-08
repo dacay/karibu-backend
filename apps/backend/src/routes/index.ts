@@ -14,6 +14,7 @@ import sequences from './sequences.js';
 import userGroups from './user-groups.js';
 import metrics from './metrics.js';
 import flags from './flags.js';
+import learnerSSE from './learner-sse.js';
 
 import { organizationMiddleware } from '../middleware/organization.js';
 
@@ -66,4 +67,7 @@ export const registerRoutes = (app: Hono) => {
 
   // Flagged messages routes
   app.route('/flags', flags);
+  
+  // Learner SSE stream (real-time feed updates)
+  app.route('/learner', learnerSSE);
 }
