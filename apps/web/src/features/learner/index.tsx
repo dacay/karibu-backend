@@ -8,8 +8,10 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useLogo } from "@/hooks/useLogo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -152,6 +154,7 @@ function AskMeAnythingCard() {
 export function LearnerRoot() {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { lightSrc, darkSrc, isLoading: logoLoading, onLightError, onDarkError } = useLogo();
   const queryClient = useQueryClient();
 
   const initials = user?.email ? getInitials(user.email) : "?";
@@ -228,7 +231,28 @@ export function LearnerRoot() {
     <div className="flex min-h-screen flex-col">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="flex h-16 items-center justify-between border-b px-6">
-        <span className="text-lg font-semibold">Karibu</span>
+        {!logoLoading && (
+          <div className="relative w-28 h-9">
+            <Image
+              src={lightSrc}
+              alt="Logo"
+              fill
+              className="block dark:hidden object-contain object-left"
+              onError={onLightError}
+              unoptimized
+              priority
+            />
+            <Image
+              src={darkSrc}
+              alt="Logo"
+              fill
+              className="hidden dark:block object-contain object-left"
+              onError={onDarkError}
+              unoptimized
+              priority
+            />
+          </div>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 h-9 px-2">
