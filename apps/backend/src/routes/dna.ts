@@ -24,12 +24,12 @@ dnaRouter.get('/', requireRole('admin'), async (c) => {
   const topics = await db
     .select()
     .from(dnaTopics)
-    .where(eq(dnaTopics.organizationId, auth.organizationId));
+    .where(and(eq(dnaTopics.organizationId, auth.organizationId), ne(dnaTopics.status, 'rejected')));
 
   const subtopics = await db
     .select()
     .from(dnaSubtopics)
-    .where(eq(dnaSubtopics.organizationId, auth.organizationId));
+    .where(and(eq(dnaSubtopics.organizationId, auth.organizationId), ne(dnaSubtopics.status, 'rejected')));
 
   const values = await db
     .select()
@@ -435,6 +435,215 @@ dnaRouter.delete('/values/:id', requireRole('admin'), async (c) => {
   logger.info({ valueId: id, organizationId: auth.organizationId }, 'DNA value deleted.');
 
   return c.json({ success: true });
+});
+
+/**
+ * POST /dna/discover
+ * Auto-discover topics and subtopics by analyzing uploaded document content with LLM.
+ * All suggestions are persisted with source: 'discovered', status: 'suggested' for admin review.
+ */
+dnaRouter.post('/discover', requireRole('admin'), async (c) => {
+
+  const auth = c.get('auth');
+
+  // Run multiple broad queries to get diverse document coverage
+  const queryTerms = [
+    'core values culture principles',
+    'policies procedures guidelines',
+    'safety training knowledge',
+  ];
+
+  const allChunks: string[] = [];
+  const seenChunks = new Set<string>();
+
+  for (const term of queryTerms) {
+    const result = await queryDocuments(term, auth.organizationId, 10);
+    for (const doc of result.documents) {
+      if (doc && doc.length > 0 && !seenChunks.has(doc)) {
+        seenChunks.add(doc);
+        allChunks.push(doc);
+      }
+    }
+  }
+
+  if (allChunks.length === 0) {
+    return c.json({
+      error: 'No document content found. Upload source documents first before running auto-discovery.',
+    }, 422);
+  }
+
+  const context = allChunks.join('\n\n---\n\n');
+
+  try {
+
+    const { text } = await generateText({
+      model: openai('gpt-4o'),
+      prompt: `You are analyzing an organization's source documents to discover the key knowledge topics and subtopics they cover.
+
+Analyze the following document excerpts and identify the main topics and their subtopics. Return ONLY valid JSON with no other text, no markdown, no code fences.
+
+The JSON must follow this exact structure:
+{
+  "topics": [
+    {
+      "name": "Topic Name",
+      "description": "One sentence describing this topic.",
+      "subtopics": [
+        {
+          "name": "Subtopic Name",
+          "description": "One sentence describing this subtopic."
+        }
+      ]
+    }
+  ]
+}
+
+Guidelines:
+- Identify 3 to 7 main topics
+- Each topic should have 2 to 5 subtopics
+- Topic and subtopic names should be concise (2-5 words)
+- Descriptions should be one sentence, under 20 words
+- Only extract topics clearly evidenced in the documents
+- Do not invent topics not supported by the content
+
+Document excerpts:
+${context}`,
+    });
+
+    let parsed: { topics: Array<{ name: string; description: string; subtopics: Array<{ name: string; description: string }> }> };
+
+    try {
+      parsed = JSON.parse(text.trim());
+    } catch {
+      logger.error({ organizationId: auth.organizationId, rawText: text }, 'DNA auto-discovery: failed to parse LLM JSON response.');
+      return c.json({ error: 'Could not parse discovery results. Please try again.' }, 500);
+    }
+
+    if (!parsed.topics || !Array.isArray(parsed.topics)) {
+      return c.json({ error: 'Could not discover topics from the provided documents.' }, 422);
+    }
+
+    let topicCount = 0;
+    let subtopicCount = 0;
+
+    for (const topicData of parsed.topics) {
+      if (!topicData.name?.trim()) continue;
+
+      const [topic] = await db.insert(dnaTopics).values({
+        organizationId: auth.organizationId,
+        name: topicData.name.trim(),
+        description: topicData.description?.trim() ?? '',
+        source: 'discovered',
+        status: 'suggested',
+      }).returning();
+
+      topicCount++;
+
+      if (Array.isArray(topicData.subtopics)) {
+        for (const subtopicData of topicData.subtopics) {
+          if (!subtopicData.name?.trim()) continue;
+          await db.insert(dnaSubtopics).values({
+            topicId: topic.id,
+            organizationId: auth.organizationId,
+            name: subtopicData.name.trim(),
+            description: subtopicData.description?.trim() ?? '',
+            source: 'discovered',
+            status: 'suggested',
+          });
+          subtopicCount++;
+        }
+      }
+    }
+
+    logger.info({ organizationId: auth.organizationId, topicCount, subtopicCount }, 'DNA auto-discovery complete.');
+
+    return c.json({ success: true, topicCount, subtopicCount });
+
+  } catch (err) {
+
+    logger.error({ err, organizationId: auth.organizationId }, 'DNA auto-discovery failed.');
+
+    return c.json({ error: 'Auto-discovery failed. Please try again.' }, 500);
+  }
+});
+
+/**
+ * PATCH /dna/topics/:id/status
+ * Confirm (active) or reject a suggested topic.
+ * Rejecting also cascades to all the topic's suggested subtopics.
+ */
+dnaRouter.patch('/topics/:id/status', requireRole('admin'), async (c) => {
+
+  const auth = c.get('auth');
+  const id = c.req.param('id');
+  const body = await c.req.json<{ status: 'active' | 'rejected' }>();
+
+  if (!['active', 'rejected'].includes(body.status)) {
+    return c.json({ error: 'status must be "active" or "rejected".' }, 400);
+  }
+
+  const [topic] = await db
+    .select()
+    .from(dnaTopics)
+    .where(and(eq(dnaTopics.id, id), eq(dnaTopics.organizationId, auth.organizationId)))
+    .limit(1);
+
+  if (!topic) {
+    return c.json({ error: 'Topic not found.' }, 404);
+  }
+
+  const [updated] = await db
+    .update(dnaTopics)
+    .set({ status: body.status })
+    .where(eq(dnaTopics.id, id))
+    .returning();
+
+  // Cascade rejection to all suggested subtopics under this topic
+  if (body.status === 'rejected') {
+    await db
+      .update(dnaSubtopics)
+      .set({ status: 'rejected' })
+      .where(and(eq(dnaSubtopics.topicId, id), eq(dnaSubtopics.status, 'suggested')));
+  }
+
+  logger.info({ topicId: id, status: body.status, organizationId: auth.organizationId }, 'DNA topic status updated.');
+
+  return c.json({ topic: updated });
+});
+
+/**
+ * PATCH /dna/subtopics/:id/status
+ * Confirm (active) or reject a suggested subtopic.
+ */
+dnaRouter.patch('/subtopics/:id/status', requireRole('admin'), async (c) => {
+
+  const auth = c.get('auth');
+  const id = c.req.param('id');
+  const body = await c.req.json<{ status: 'active' | 'rejected' }>();
+
+  if (!['active', 'rejected'].includes(body.status)) {
+    return c.json({ error: 'status must be "active" or "rejected".' }, 400);
+  }
+
+  const [subtopic] = await db
+    .select()
+    .from(dnaSubtopics)
+    .where(and(eq(dnaSubtopics.id, id), eq(dnaSubtopics.organizationId, auth.organizationId)))
+    .limit(1);
+
+  if (!subtopic) {
+    return c.json({ error: 'Subtopic not found.' }, 404);
+  }
+
+  const [updated] = await db
+    .update(dnaSubtopics)
+    .set({ status: body.status })
+    .where(eq(dnaSubtopics.id, id))
+    .returning();
+
+  logger.info({ subtopicId: id, status: body.status, organizationId: auth.organizationId }, 'DNA subtopic status updated.');
+
+  return c.json({ subtopic: updated });
 });
 
 export default dnaRouter;

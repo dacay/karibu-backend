@@ -387,6 +387,20 @@ export const api = {
       }),
     deleteSubtopic: (id: string) =>
       request<{ success: boolean }>(`/dna/subtopics/${id}`, { method: "DELETE" }),
+    discover: () =>
+      request<{ success: boolean; topicCount: number; subtopicCount: number }>("/dna/discover", {
+        method: "POST",
+      }),
+    updateTopicStatus: (id: string, status: "active" | "rejected") =>
+      request<{ topic: DnaTopic }>(`/dna/topics/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+    updateSubtopicStatus: (id: string, status: "active" | "rejected") =>
+      request<{ subtopic: DnaSubtopic }>(`/dna/subtopics/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
     synthesize: (subtopicId: string) =>
       request<{ success: boolean; valueCount: number }>(`/dna/subtopics/${subtopicId}/synthesize`, {
         method: "POST",
