@@ -27,7 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AccountMenu } from "@/components/AccountMenu";
-import { api, getApiBaseUrl, getToken, INACTIVITY_WINDOW_MS, type LearnerFeedML } from "@/lib/api";
+import { api, getApiBaseUrl, getToken, DEFAULT_INACTIVITY_WINDOW_MS, type LearnerFeedML } from "@/lib/api";
 
 // ─── Active ML card ─────────────────────────────────────────────────────────
 
@@ -160,7 +160,7 @@ export function LearnerRoot() {
     for (const ml of feedData?.active ?? []) {
       if (ml.progress?.status === "active" && ml.progress.openedAt) {
         const expiresAt =
-          new Date(ml.progress.openedAt).getTime() + INACTIVITY_WINDOW_MS;
+          new Date(ml.progress.openedAt).getTime() + (feedData?.expirationIntervalMs ?? DEFAULT_INACTIVITY_WINDOW_MS);
         const delay = expiresAt - Date.now();
         if (delay > 0) {
           timers.push(
