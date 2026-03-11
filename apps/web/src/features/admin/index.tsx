@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
-  Dna,
+  Layers,
   BookOpen,
   UserCircle,
   MessageSquare,
@@ -55,7 +55,7 @@ type SectionId = "dashboard" | "dna" | "microlearnings" | "avatars" | "patterns"
 
 const NAV_ITEMS: { id: SectionId; label: string; icon: React.ElementType }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "dna", label: "Source", icon: Dna },
+  { id: "dna", label: "Source", icon: Layers },
   { id: "microlearnings", label: "Microlearnings", icon: BookOpen },
   { id: "avatars", label: "Avatars", icon: UserCircle },
   { id: "patterns", label: "Patterns", icon: MessageSquare },

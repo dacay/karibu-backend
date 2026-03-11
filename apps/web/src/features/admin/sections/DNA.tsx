@@ -667,7 +667,7 @@ export function DNASection() {
       <Accordion type="single" collapsible>
         <AccordionItem value="source-documents" className="border rounded-lg px-4">
           <AccordionTrigger className="hover:no-underline">
-            <span className="text-base font-medium">Source Documents</span>
+            <span className="text-base font-medium">Documents</span>
           </AccordionTrigger>
           <AccordionContent>
             <SourceDocuments />
