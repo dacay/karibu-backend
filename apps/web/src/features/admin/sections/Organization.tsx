@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Upload, CheckCircle, AlertCircle, Building2, Timer } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, Building2, Timer, ImageOff } from "lucide-react";
 import Image from "next/image";
 import { api, type OrgConfig } from "@/lib/api";
 import { useSubdomain } from "@/hooks/useSubdomain";
@@ -85,8 +85,8 @@ function LogoUpload({ variant, subdomain }: LogoUploadProps) {
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
       >
-        {previewSrc && (
-          <div className={`mb-1 rounded p-2 ${variant === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
+        <div className={`mb-1 rounded p-2 ${variant === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
+          {previewSrc ? (
             <Image
               src={previewSrc}
               alt={`${label} preview`}
@@ -95,8 +95,12 @@ function LogoUpload({ variant, subdomain }: LogoUploadProps) {
               className="object-contain"
               unoptimized
             />
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center justify-center w-[120px] h-[40px]">
+              <ImageOff className={`size-5 ${variant === "dark" ? "text-gray-600" : "text-gray-300"}`} />
+            </div>
+          )}
+        </div>
 
         {status === "uploading" ? (
           <Spinner className="size-5 text-muted-foreground" />
