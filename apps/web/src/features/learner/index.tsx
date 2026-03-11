@@ -228,12 +228,15 @@ export function LearnerRoot() {
           </div>
         ) : isEmpty ? (
           /* ── Empty state ──────────────────────────────────────────────── */
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center max-w-2xl">
-            <BookOpen className="size-8 text-muted-foreground mb-3" />
-            <p className="text-sm font-medium">No microlearnings assigned</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Your administrator will assign learning content here.
-            </p>
+          <div className="flex flex-col gap-4 max-w-2xl">
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
+              <BookOpen className="size-8 text-muted-foreground mb-3" />
+              <p className="text-sm font-medium">No microlearnings assigned</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Your administrator will assign learning content here.
+              </p>
+            </div>
+            <AskMeAnythingCard />
           </div>
         ) : (
           <div className="flex flex-col gap-8 max-w-2xl">
