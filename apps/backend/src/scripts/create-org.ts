@@ -13,7 +13,7 @@ if (!DATABASE_URL) {
 // Parse CLI arguments: --name "Org Name" --subdomain acme --admin-email admin@acme.com --admin-password secret123
 function parseArgs(): { name: string; subdomain: string; adminEmail: string; adminPassword: string } {
 
-  const args = process.argv.slice(2);
+  const args = process.argv.slice(2).filter((a) => a !== '--');
   const map = new Map<string, string>();
 
   for (let i = 0; i < args.length; i += 2) {
