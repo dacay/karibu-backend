@@ -42,6 +42,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { KaribuFooter } from "@/components/KaribuFooter";
 import { DashboardSection } from "./sections/Dashboard";
 import { DNASection } from "./sections/DNA";
 import { MicrolearningsSection } from "./sections/Microlearnings";
@@ -165,6 +166,7 @@ export function AdminRoot() {
           })}
         </nav>
 
+        <KaribuFooter />
       </aside>
 
       {/* Main content */}
