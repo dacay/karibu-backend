@@ -113,26 +113,20 @@ export function ChatMessage({ message, chatId, avatar, isSpeaking = false }: Cha
         )}
       </div>
 
-      {/* Flag button — appears on group hover */}
-      {!flagged && !showReason && (
+      {/* Flag button — appears on group hover, assistant messages only */}
+      {isAssistant && !flagged && !showReason && (
         <button
           onClick={() => setShowReason(true)}
-          className={cn(
-            "shrink-0 self-center rounded-full p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-destructive",
-            !isAssistant && "order-first"
-          )}
+          className="shrink-0 self-center rounded-full p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-destructive"
           title="Flag as inaccurate"
         >
           <Flag className="size-3.5" />
         </button>
       )}
 
-      {flagged && (
+      {isAssistant && flagged && (
         <span
-          className={cn(
-            "shrink-0 self-center rounded-full p-1.5 text-amber-500",
-            !isAssistant && "order-first"
-          )}
+          className="shrink-0 self-center rounded-full p-1.5 text-amber-500"
           title="Flagged — admins will review this"
         >
           <Flag className="size-3.5" />
