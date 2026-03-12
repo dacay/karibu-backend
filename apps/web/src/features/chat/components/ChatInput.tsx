@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent } from "react";
+import { type KeyboardEvent, useEffect, useRef } from "react";
 import { Send, Mic, Loader2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +38,14 @@ export function ChatInput({
   onStopVoice,
   onStartVoice,
 }: ChatInputProps) {
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!isLoading && mode === "text") {
+      textareaRef.current?.focus();
+    }
+  }, [isLoading, mode]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -102,6 +110,7 @@ export function ChatInput({
     <div className="shrink-0 border-t bg-background px-3 py-2 sm:px-4 sm:py-3">
       <div className="flex items-center gap-1.5 sm:gap-2">
         <Textarea
+          ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
