@@ -37,31 +37,29 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
         <CardContent className="px-8 pt-8 pb-8">
-          <div className="mb-6 flex justify-center min-h-[40px] items-center">
-            {isLoading ? (
-              <div className="w-[120px] h-[40px]" />
-            ) : (
-              <>
-                <Image
-                  src={lightSrc}
-                  alt="Logo"
-                  width={120}
-                  height={40}
-                  className="block dark:hidden"
-                  unoptimized
-                  priority
-                />
-                <Image
-                  src={darkSrc}
-                  alt="Logo"
-                  width={120}
-                  height={40}
-                  className="hidden dark:block"
-                  unoptimized
-                  priority
-                />
-              </>
-            )}
+          <div className="mb-6 flex justify-center">
+            <div className="relative w-36 h-14">
+              {!isLoading && (
+                <>
+                  <Image
+                    src={lightSrc}
+                    alt="Logo"
+                    fill
+                    className="block dark:hidden object-contain"
+                    unoptimized
+                    priority
+                  />
+                  <Image
+                    src={darkSrc}
+                    alt="Logo"
+                    fill
+                    className="hidden dark:block object-contain"
+                    unoptimized
+                    priority
+                  />
+                </>
+              )}
+            </div>
           </div>
 
           <div className="mb-5 text-center">
