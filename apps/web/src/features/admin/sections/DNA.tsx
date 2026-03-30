@@ -13,6 +13,7 @@ import {
   X,
   Wand2,
   Pencil,
+  BookOpen,
 } from "lucide-react";
 import {
   Accordion,
@@ -26,7 +27,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Separator } from "@/components/ui/separator";
-import { api, type Document, type DnaTopic, type DnaSubtopic, type DnaValue } from "@/lib/api";
+import { Checkbox } from "@/components/ui/checkbox";
+import { api, type Document, type DnaTopic, type DnaSubtopic, type DnaValue, type Microlearning } from "@/lib/api";
 
 // ─── Document helpers ────────────────────────────────────────────────────────
 
@@ -399,7 +401,34 @@ function SubtopicRow({ subtopic, onSuggestionAction }: { subtopic: DnaSubtopic; 
 
 // ─── Topic item ──────────────────────────────────────────────────────────────
 
-function TopicItem({ topic, onSuggestionAction }: { topic: DnaTopic; onSuggestionAction?: () => void }) {
+function CoverageBadge({ topic, coveredSubtopicIds }: { topic: DnaTopic; coveredSubtopicIds: Set<string> }) {
+  const activeSubtopics = topic.subtopics.filter((s) => s.status !== "rejected");
+  const total = activeSubtopics.length;
+  if (total === 0) return null;
+  const covered = activeSubtopics.filter((s) => coveredSubtopicIds.has(s.id)).length;
+  const label = `${covered}/${total}`;
+  if (covered === total) {
+    return (
+      <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-100 text-green-700 border-green-200 hover:bg-green-100 shrink-0 gap-1">
+        <BookOpen className="size-2.5" />{label}
+      </Badge>
+    );
+  }
+  if (covered === 0) {
+    return (
+      <Badge className="text-[10px] px-1.5 py-0 h-4 bg-red-100 text-red-700 border-red-200 hover:bg-red-100 shrink-0 gap-1">
+        <BookOpen className="size-2.5" />{label}
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 shrink-0 gap-1">
+      <BookOpen className="size-2.5" />{label}
+    </Badge>
+  );
+}
+
+function TopicItem({ topic, coveredSubtopicIds, onSuggestionAction }: { topic: DnaTopic; coveredSubtopicIds: Set<string>; onSuggestionAction?: () => void }) {
   const queryClient = useQueryClient();
   const [showAddSubtopic, setShowAddSubtopic] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -444,6 +473,7 @@ function TopicItem({ topic, onSuggestionAction }: { topic: DnaTopic; onSuggestio
         <div className="flex items-center gap-2 flex-1 mr-2">
           <span className="font-medium">{topic.name}</span>
           {suggestedBadge(topic.status)}
+          <CoverageBadge topic={topic} coveredSubtopicIds={coveredSubtopicIds} />
         </div>
         {topic.status === "suggested" ? (
           <>
@@ -693,11 +723,21 @@ export function DNASection() {
   const queryClient = useQueryClient();
   const [showAddTopic, setShowAddTopic] = useState(false);
   const [discoverResult, setDiscoverResult] = useState<string | null>(null);
+  const [uncoveredOnly, setUncoveredOnly] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["dna"],
     queryFn: () => api.dna.list(),
   });
+
+  const { data: mlData } = useQuery({
+    queryKey: ["microlearnings"],
+    queryFn: () => api.microlearnings.list(),
+  });
+
+  const coveredSubtopicIds = new Set<string>(
+    (mlData?.microlearnings ?? []).flatMap((ml: Microlearning) => ml.subtopicIds ?? [])
+  );
 
   const addTopicMutation = useMutation({
     mutationFn: ({ name, description }: { name: string; description: string }) =>
@@ -724,7 +764,14 @@ export function DNASection() {
   });
 
   const topics = data?.topics ?? [];
-  const visibleTopics = topics.filter((t) => t.status !== "rejected");
+  const visibleTopics = topics
+    .filter((t) => t.status !== "rejected")
+    .filter((t) => {
+      if (!uncoveredOnly) return true;
+      const activeSubtopics = t.subtopics.filter((s) => s.status !== "rejected");
+      if (activeSubtopics.length === 0) return false;
+      return activeSubtopics.some((s) => !coveredSubtopicIds.has(s.id));
+    });
 
   return (
     <div className="space-y-6">
@@ -742,6 +789,13 @@ export function DNASection() {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-medium">Topics &amp; Subtopics</h3>
           <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer select-none">
+              <Checkbox
+                checked={uncoveredOnly}
+                onCheckedChange={(v) => setUncoveredOnly(!!v)}
+              />
+              Uncovered only
+            </label>
             <Button
               variant="outline"
               size="sm"
@@ -806,7 +860,7 @@ export function DNASection() {
         ) : (
           <Accordion type="multiple" className="space-y-1">
             {[...visibleTopics].sort((a, b) => a.name.localeCompare(b.name)).map((topic) => (
-              <TopicItem key={topic.id} topic={topic} onSuggestionAction={() => setDiscoverResult(null)} />
+              <TopicItem key={topic.id} topic={topic} coveredSubtopicIds={coveredSubtopicIds} onSuggestionAction={() => setDiscoverResult(null)} />
             ))}
           </Accordion>
         )}
