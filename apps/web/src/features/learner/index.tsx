@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BookOpen, CheckCircle2, Clock, MessageCircle, ChevronRight,
+  BookOpen, CheckCircle2, Clock, MessageCircle,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -47,25 +47,31 @@ function ActiveMLCard({ ml }: { ml: LearnerFeedML }) {
     <button
       type="button"
       onClick={() => router.push(`/ml/${ml.id}`)}
-      className="flex items-center gap-4 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-full cursor-pointer"
+      className="rounded-xl border bg-card text-card-foreground shadow cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex flex-col items-start p-5 text-left"
       style={isNew ? { boxShadow: `0 0 10px 2px ${glowColor}` } : undefined}
     >
-      <div className="flex-1 min-w-0">
-        {ml.sequenceName && (
-          <p className="text-xs text-muted-foreground mb-0.5 truncate">{ml.sequenceName}</p>
-        )}
-        <p className="text-sm font-medium truncate">{ml.title}</p>
+      {/* Placeholder for future image */}
+      <div className="w-full h-28 rounded-md bg-muted/60 mb-4 flex items-center justify-center">
+        <BookOpen className="size-8 text-muted-foreground/50" />
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+
+      {ml.sequenceName && (
+        <p className="text-xs text-muted-foreground mb-1 truncate w-full">{ml.sequenceName}</p>
+      )}
+      <p className="text-sm font-medium line-clamp-2 w-full">{ml.title}</p>
+
+      <div className="flex items-center gap-2 mt-3 w-full">
         {isCompleted && (
-          <CheckCircle2 className="size-4 text-green-500" />
+          <Badge variant="outline" className="gap-1 text-xs border-green-500 text-green-600">
+            <CheckCircle2 className="size-3" />
+            Done
+          </Badge>
         )}
         {isInProgress && (
           <Badge variant="outline" className="gap-1 text-xs">
             In progress
           </Badge>
         )}
-        <ChevronRight className="size-4 text-muted-foreground" />
       </div>
     </button>
   );
@@ -229,7 +235,7 @@ export function LearnerRoot() {
           </div>
         ) : isEmpty ? (
           /* ── Empty state ──────────────────────────────────────────────── */
-          <div className="flex flex-col gap-4 max-w-2xl">
+          <div className="flex flex-col gap-4">
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
               <BookOpen className="size-8 text-muted-foreground mb-3" />
               <p className="text-sm font-medium">No microlearnings assigned</p>
@@ -240,23 +246,25 @@ export function LearnerRoot() {
             <AskMeAnythingCard />
           </div>
         ) : (
-          <div className="flex flex-col gap-8 max-w-2xl">
+          <div className="flex flex-col gap-8">
             {/* ── Active MLs + Ask me anything ──────────────────────────── */}
             {(active.length > 0) && (
-              <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
                 {active.map((ml) => (
                   <ActiveMLCard key={ml.id} ml={ml} />
                 ))}
               </div>
             )}
 
-            <AskMeAnythingCard />
+            <div className="max-w-md">
+              <AskMeAnythingCard />
+            </div>
 
             {/* ── Archive ────────────────────────────────────────────────── */}
             {archive.length > 0 && (
-              <>
+              <div className="max-w-2xl">
                 <Separator />
-                <Accordion type="single" collapsible className="-mt-4">
+                <Accordion type="single" collapsible>
                   <AccordionItem value="archive" className="border-none">
                     <AccordionTrigger className="py-2 text-sm text-muted-foreground hover:no-underline hover:text-foreground">
                       <span>Archive&nbsp;<span className="text-xs font-normal">({archive.length})</span></span>
@@ -270,7 +278,7 @@ export function LearnerRoot() {
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
-              </>
+              </div>
             )}
           </div>
         )}
