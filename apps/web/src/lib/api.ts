@@ -183,6 +183,7 @@ export interface Microlearning {
   avatarId: string | null;
   sequenceId: string | null;
   position: number | null;
+  imageS3Key: string | null;
   createdAt: string;
   updatedAt: string;
 }

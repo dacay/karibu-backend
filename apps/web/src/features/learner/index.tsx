@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { AccountMenu } from "@/components/AccountMenu";
 import { KaribuFooter } from "@/components/KaribuFooter";
+import { getAssetUrl } from "@/lib/assets";
 import { api, getApiBaseUrl, getToken, DEFAULT_INACTIVITY_WINDOW_MS, type LearnerFeedML } from "@/lib/api";
 
 // ─── Active ML card ─────────────────────────────────────────────────────────
@@ -39,6 +40,8 @@ function ActiveMLCard({ ml }: { ml: LearnerFeedML }) {
   const isCompleted = ml.progress?.status === "completed";
   const isSequence = !!ml.sequenceName;
   const isNew = isSequence && ml.progress === null;
+  const imageUrl = ml.imageS3Key ? getAssetUrl(ml.imageS3Key) : null;
+
   const glowColor = resolvedTheme === "dark"
     ? "rgba(34, 197, 94, 0.45)"
     : "rgba(22, 163, 74, 0.35)";
@@ -47,25 +50,66 @@ function ActiveMLCard({ ml }: { ml: LearnerFeedML }) {
     <button
       type="button"
       onClick={() => router.push(`/ml/${ml.id}`)}
-      className="flex items-center gap-4 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-full cursor-pointer"
-      style={isNew ? { boxShadow: `0 0 10px 2px ${glowColor}` } : undefined}
+      className="group relative flex flex-col justify-end overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-full cursor-pointer"
+      style={{
+        height: 260,
+        ...(isNew ? { boxShadow: `0 0 14px 3px ${glowColor}` } : {}),
+      }}
     >
-      <div className="flex-1 min-w-0">
-        {ml.sequenceName && (
-          <p className="text-xs text-muted-foreground mb-0.5 truncate">{ml.sequenceName}</p>
-        )}
-        <p className="text-sm font-medium truncate">{ml.title}</p>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Background image or gray placeholder */}
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          unoptimized
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted-foreground/20" />
+      )}
+
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+
+      {/* Status badges — top-right */}
+      <div className="absolute top-3 right-3 flex items-center gap-1.5">
         {isCompleted && (
-          <CheckCircle2 className="size-4 text-green-500" />
+          <Badge className="gap-1 bg-green-600/90 text-white border-0 text-xs backdrop-blur-sm">
+            <CheckCircle2 className="size-3" />
+            Completed
+          </Badge>
         )}
         {isInProgress && (
-          <Badge variant="outline" className="gap-1 text-xs">
+          <Badge className="gap-1 bg-white/20 text-white border-0 text-xs backdrop-blur-sm">
             In progress
           </Badge>
         )}
-        <ChevronRight className="size-4 text-muted-foreground" />
+      </div>
+
+      {/* Content — bottom of card */}
+      <div className="relative z-10 flex flex-col gap-2 p-5">
+        {ml.sequenceName && (
+          <p className="text-xs text-white/70 truncate">{ml.sequenceName}</p>
+        )}
+        <h3 className="text-lg font-semibold text-white leading-tight line-clamp-2">
+          {ml.title}
+        </h3>
+
+        {/* Topic tag + action */}
+        <div className="flex items-center justify-between gap-3 mt-1">
+          <div className="flex items-center gap-2 min-w-0">
+            {ml.topic && (
+              <Badge className="bg-white/20 text-white border-0 text-xs backdrop-blur-sm truncate max-w-[180px]">
+                {ml.topic.name}
+              </Badge>
+            )}
+          </div>
+          <div className="shrink-0 flex items-center gap-1.5 text-sm font-medium text-white">
+            {isCompleted ? "Review" : "Start"}
+            <ChevronRight className="size-4" />
+          </div>
+        </div>
       </div>
     </button>
   );
@@ -229,7 +273,7 @@ export function LearnerRoot() {
           </div>
         ) : isEmpty ? (
           /* ── Empty state ──────────────────────────────────────────────── */
-          <div className="flex flex-col gap-4 max-w-2xl">
+          <div className="flex flex-col gap-4 max-w-3xl">
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
               <BookOpen className="size-8 text-muted-foreground mb-3" />
               <p className="text-sm font-medium">No microlearnings assigned</p>
@@ -240,10 +284,10 @@ export function LearnerRoot() {
             <AskMeAnythingCard />
           </div>
         ) : (
-          <div className="flex flex-col gap-8 max-w-2xl">
+          <div className="flex flex-col gap-8 max-w-3xl">
             {/* ── Active MLs + Ask me anything ──────────────────────────── */}
             {(active.length > 0) && (
-              <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {active.map((ml) => (
                   <ActiveMLCard key={ml.id} ml={ml} />
                 ))}
