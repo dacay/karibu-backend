@@ -575,4 +575,33 @@ microlearningsRouter.delete('/:id', requireRole('admin'), async (c) => {
   return c.json({ success: true });
 })
 
+/**
+ * POST /microlearnings/:id/regenerate-image
+ * Trigger regeneration of the cover image. Fire-and-forget — returns immediately.
+ * The new image will arrive via the SSE feed:updated event once Gemini finishes.
+ */
+microlearningsRouter.post('/:id/regenerate-image', requireRole('admin'), async (c) => {
+
+  const auth = c.get('auth');
+  const id = c.req.param('id');
+
+  const [existing] = await db
+    .select()
+    .from(microlearnings)
+    .where(and(eq(microlearnings.id, id), eq(microlearnings.organizationId, auth.organizationId)))
+    .limit(1);
+
+  if (!existing) {
+    return c.json({ error: 'Microlearning not found.' }, 404);
+  }
+
+  generateMlImage(id).catch((err) => {
+    logger.error({ err, microlearningId: id }, 'Background ML image regeneration failed.');
+  });
+
+  logger.info({ microlearningId: id, organizationId: auth.organizationId }, 'ML cover image regeneration triggered.');
+
+  return c.json({ success: true });
+})
+
 export default microlearningsRouter;
