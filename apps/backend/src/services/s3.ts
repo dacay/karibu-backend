@@ -145,6 +145,39 @@ export const deleteFromAssetsBucket = (key: string): Promise<void> =>
   remove(getAssetsBucketName(), key)
 
 /**
+ * Download an object from the assets bucket directly via S3 (no CDN).
+ * Returns null when the key does not exist.
+ */
+export const downloadFromAssetsBucket = async (
+  key: string,
+): Promise<{ body: Buffer; contentType: string } | null> => {
+
+  const client = getS3Client();
+  const command = new GetObjectCommand({ Bucket: getAssetsBucketName(), Key: key });
+
+  let response;
+  try {
+    response = await client.send(command);
+  } catch (err) {
+    if ((err as { name?: string }).name === 'NoSuchKey') return null;
+    throw err;
+  }
+
+  if (!response.Body) return null;
+
+  const chunks: Uint8Array[] = [];
+
+  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+    chunks.push(chunk);
+  }
+
+  return {
+    body: Buffer.concat(chunks),
+    contentType: response.ContentType ?? 'application/octet-stream',
+  };
+}
+
+/**
  * Build the S3 key for a document given organization and filename.
  * Optionally prefixed by S3_DOCS_KEY_PREFIX (e.g. "prod" → "prod/{orgId}/{docId}.pdf").
  */

@@ -2,7 +2,12 @@ import { GoogleGenAI } from '@google/genai';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { microlearnings, organizations, dnaTopics, dnaSubtopics } from '../db/schema.js';
-import { uploadToAssetsBucket, buildMlImageKey, buildOrgLogoKey } from './s3.js';
+import {
+  uploadToAssetsBucket,
+  downloadFromAssetsBucket,
+  buildMlImageKey,
+  buildOrgLogoKey,
+} from './s3.js';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { broadcastFeedUpdate } from '../routes/learner-sse.js';
@@ -30,20 +35,23 @@ function buildImagePrompt(
 }
 
 /**
- * Download an image from a URL and return it as a base64 string.
- * Used to fetch the org logo to send to Gemini as reference.
+ * Load the org logo (light preferred, dark fallback) straight from S3 so we
+ * don't depend on a CDN env var being set on the backend. Returns null if
+ * neither variant exists.
  */
-async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string } | null> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
+async function loadOrgLogo(
+  subdomain: string,
+): Promise<{ base64: string; mimeType: string } | null> {
 
-    const contentType = response.headers.get('content-type') ?? 'image/png';
-    const buffer = Buffer.from(await response.arrayBuffer());
-    return { base64: buffer.toString('base64'), mimeType: contentType };
-  } catch {
-    return null;
+  for (const variant of ['light', 'dark'] as const) {
+    const key = buildOrgLogoKey(subdomain, variant);
+    const obj = await downloadFromAssetsBucket(key);
+    if (obj) {
+      return { base64: obj.body.toString('base64'), mimeType: obj.contentType };
+    }
   }
+
+  return null;
 }
 
 /**
@@ -110,27 +118,18 @@ export async function generateMlImage(mlId: string): Promise<void> {
 
     const genai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
 
-    // Try to fetch org logo to include as reference
-    const logoKey = buildOrgLogoKey(org.subdomain, 'light');
-    const cdnBase = process.env.ASSETS_CDN_URL ?? process.env.NEXT_PUBLIC_ASSETS_CDN_URL ?? '';
-    const logoUrl = cdnBase ? `${cdnBase}/${logoKey}` : '';
-
     const parts: Array<{ text: string } | { inlineData: { data: string; mimeType: string } }> = [];
+    const logo = await loadOrgLogo(org.subdomain);
 
-    if (logoUrl) {
-      const logoData = await fetchImageAsBase64(logoUrl);
-      if (logoData) {
-        parts.push({
-          text: prompt + ` If possible, subtly incorporate the style or colors of the attached organization logo.`,
-        });
-        parts.push({
-          inlineData: { data: logoData.base64, mimeType: logoData.mimeType },
-        });
-      } else {
-        parts.push({ text: prompt });
-      }
+    if (logo) {
+      parts.push({
+        text: prompt + ` If possible, subtly incorporate the style or colors of the attached organization logo.`,
+      });
+      parts.push({ inlineData: { data: logo.base64, mimeType: logo.mimeType } });
+      logger.info({ mlId, orgSubdomain: org.subdomain }, 'Attaching org logo to Gemini prompt.');
     } else {
       parts.push({ text: prompt });
+      logger.debug({ mlId, orgSubdomain: org.subdomain }, 'No org logo found — prompt-only.');
     }
 
     const response = await genai.models.generateContent({
