@@ -28,6 +28,7 @@ import {
   userGroups,
   microlearningSequenceAssignments,
   chats,
+  organizations,
 } from '../db/schema.js';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
@@ -49,9 +50,12 @@ function buildMLSystemPrompt(
   subtopics: Array<{ name: string; description: string }>,
   dnaKnowledge: string[],
   isCompleted: boolean,
+  organizationName: string,
 ): string {
 
   const parts: string[] = [patternPrompt];
+
+  parts.push(`\nORGANIZATION: ${organizationName}`);
 
   if (topicName) {
     parts.push(`\n---\nMICROLEARNING TOPIC: ${topicName}`);
@@ -216,6 +220,14 @@ chat.post('/ml', zValidator('json', mlChatSchema), async (c) => {
     }
   }
 
+  // Load organization name
+  const [org] = await db
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, auth.organizationId))
+    .limit(1);
+  const organizationName = org?.name ?? 'your organization';
+
   // Load conversation pattern
   let patternPrompt = DEFAULT_ML_SYSTEM_PROMPT;
   if (ml.patternId) {
@@ -304,6 +316,7 @@ chat.post('/ml', zValidator('json', mlChatSchema), async (c) => {
     relevantSubtopics,
     dnaKnowledge,
     isCompleted,
+    organizationName,
   );
 
   // Track whether the ML was completed during this request
@@ -391,20 +404,6 @@ chat.post('/ml', zValidator('json', mlChatSchema), async (c) => {
 
 // ─── POST /chat/assistant ──────────────────────────────────────────────────────
 
-const ASSISTANT_SYSTEM_PROMPT = `You are a helpful assistant. Answer questions clearly and concisely. You have access to organizational knowledge through the searchKnowledge tool — always call it before answering.
-
-The tool returns results in labeled sections:
-- [Source Knowledge] — curated, verified organizational knowledge. Prioritize this.
-- [Document Knowledge] — relevant excerpts from uploaded documents. Use when source knowledge is insufficient.
-- If neither section appears, no organizational knowledge was found.
-
-IMPORTANT: Never include the section labels [Source Knowledge] or [Document Knowledge] in your response text. They are internal markers only.
-
-You MUST call reportSource before writing your response. Choose:
-- "source" if your answer will rely on [Source Knowledge]
-- "document" if your answer will rely on [Document Knowledge]
-- "general" if the search results were irrelevant and you will answer from general knowledge`;
-
 const assistantChatSchema = z.object({
   chatId: z.string().min(1),
   messages: z.array(z.object({
@@ -426,6 +425,27 @@ chat.post('/assistant', zValidator('json', assistantChatSchema), async (c) => {
   const messages = c.req.valid('json').messages as UIMessage[];
   const auth = c.get('auth');
 
+  const [assistantOrg] = await db
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, auth.organizationId))
+    .limit(1);
+  const assistantOrgName = assistantOrg?.name ?? 'your organization';
+
+  const assistantSystemPrompt = `You are a helpful assistant for the organization "${assistantOrgName}". Answer questions clearly and concisely. You have access to organizational knowledge through the searchKnowledge tool — always call it before answering.
+
+The tool returns results in labeled sections:
+- [Source Knowledge] — curated, verified organizational knowledge. Prioritize this.
+- [Document Knowledge] — relevant excerpts from uploaded documents. Use when source knowledge is insufficient.
+- If neither section appears, no organizational knowledge was found.
+
+IMPORTANT: Never include the section labels [Source Knowledge] or [Document Knowledge] in your response text. They are internal markers only.
+
+You MUST call reportSource before writing your response. Choose:
+- "source" if your answer will rely on [Source Knowledge]
+- "document" if your answer will rely on [Document Knowledge]
+- "general" if the search results were irrelevant and you will answer from general knowledge`;
+
   // Track the best knowledge source used during this response:
   // null = tool not called, 'source' = approved values, 'document' = vector DB, 'general' = LLM only
   let dataSource: 'source' | 'document' | 'general' | null = null;
@@ -433,7 +453,7 @@ chat.post('/assistant', zValidator('json', assistantChatSchema), async (c) => {
 
   const result = streamText({
     model: openai('gpt-4o'),
-    system: ASSISTANT_SYSTEM_PROMPT,
+    system: assistantSystemPrompt,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(3),
     tools: {
