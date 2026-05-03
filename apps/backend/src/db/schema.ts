@@ -47,6 +47,28 @@ export const authSessions = pgTable('auth_sessions', {
   createdAt: timestamps.createdAt,
 });
 
+// Service accounts table - non-human integration identities (machine equivalent of users)
+export const serviceAccounts = pgTable('service_accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  label: text('label').notNull(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  createdAt: timestamps.createdAt,
+}, (table) => [
+  index('service_accounts_organization_id_idx').on(table.organizationId),
+]);
+
+// API keys table - long-lived JWT credentials issued to a service account (machine equivalent of auth_sessions)
+export const apiKeys = pgTable('api_keys', {
+  id: text('id').primaryKey(), // JWT ID (jti claim)
+  serviceAccountId: uuid('service_account_id').notNull().references(() => serviceAccounts.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at').notNull(),
+  revokedAt: timestamp('revoked_at'), // null = active
+  lastUsedAt: timestamp('last_used_at'),
+  createdAt: timestamps.createdAt,
+}, (table) => [
+  index('api_keys_service_account_id_idx').on(table.serviceAccountId),
+]);
+
 // Notification logs table - records every notification attempt and its outcome
 export const notificationChannelEnum = pgEnum('notification_channel', ['sms']);
 export const notificationStatusEnum = pgEnum('notification_status', ['sent', 'failed']);

@@ -33,6 +33,12 @@ documentsRouter.post('/upload', requireRole('admin'), async (c) => {
 
   const auth = c.get('auth');
 
+  if (auth.kind !== 'user') {
+
+    // documents.uploadedBy is a FK to users; service callers can't satisfy it
+    return c.json({ error: 'Document upload is not available to service tokens.' }, 403);
+  }
+
   let formData: FormData;
 
   try {

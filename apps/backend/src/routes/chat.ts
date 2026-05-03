@@ -127,6 +127,11 @@ chat.post('/ml', zValidator('json', mlChatSchema), async (c) => {
   const messages = c.req.valid('json').messages as UIMessage[];
   const auth = c.get('auth');
 
+  if (auth.kind !== 'user') {
+
+    return c.json({ error: 'Chat is not available to service tokens.' }, 403);
+  }
+
   // Load the microlearning
   const [ml] = await db
     .select()
@@ -380,6 +385,11 @@ chat.post('/assistant', zValidator('json', assistantChatSchema), async (c) => {
   const { chatId } = c.req.valid('json');
   const messages = c.req.valid('json').messages as UIMessage[];
   const auth = c.get('auth');
+
+  if (auth.kind !== 'user') {
+
+    return c.json({ error: 'Chat is not available to service tokens.' }, 403);
+  }
 
   const result = streamText({
     model: openai('gpt-4o'),

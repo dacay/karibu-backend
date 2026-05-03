@@ -29,6 +29,11 @@ microlearningsRouter.get('/my', async (c) => {
 
   const auth = c.get('auth');
 
+  if (auth.kind !== 'user') {
+
+    return c.json({ error: 'Learner endpoints are not available to service tokens.' }, 403);
+  }
+
   // Find groups the user belongs to
   const groupMemberships = await db
     .select({ groupId: userGroupMembers.groupId })
@@ -133,8 +138,9 @@ microlearningsRouter.get('/:id', async (c) => {
     return c.json({ error: 'Microlearning not found.' }, 404);
   }
 
-  // Non-admin users can only access published MLs assigned to their groups
-  if (auth.role !== 'admin') {
+  // Non-admin users can only access published MLs assigned to their groups.
+  // (Service tokens are always admin-role, so they bypass these checks.)
+  if (auth.kind === 'user' && auth.role !== 'admin') {
 
     if (ml.status !== 'published') {
       return c.json({ error: 'Microlearning not found.' }, 404);
@@ -200,15 +206,17 @@ microlearningsRouter.get('/:id', async (c) => {
       .limit(1)
     : [null];
 
-  // Fetch current user's progress
-  const [progress] = await db
-    .select()
-    .from(microlearningProgress)
-    .where(and(
-      eq(microlearningProgress.userId, auth.userId),
-      eq(microlearningProgress.microlearningId, id),
-    ))
-    .limit(1);
+  // Fetch current user's progress (service tokens have no user-scoped progress)
+  const [progress] = auth.kind === 'user'
+    ? await db
+      .select()
+      .from(microlearningProgress)
+      .where(and(
+        eq(microlearningProgress.userId, auth.userId),
+        eq(microlearningProgress.microlearningId, id),
+      ))
+      .limit(1)
+    : [null];
 
   return c.json({
     microlearning: {

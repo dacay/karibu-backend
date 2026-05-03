@@ -19,6 +19,11 @@ userRouter.get('/me', async (c) => {
 
   const auth = c.get('auth');
 
+  if (auth.kind !== 'user') {
+
+    return c.json({ error: 'Service tokens have no associated user profile.' }, 403);
+  }
+
   const [user] = await db
     .select({
       id: users.id,
@@ -50,6 +55,12 @@ const updatePreferencesSchema = z.object({
 userRouter.patch('/preferences', zValidator('json', updatePreferencesSchema), async (c) => {
 
   const auth = c.get('auth');
+
+  if (auth.kind !== 'user') {
+
+    return c.json({ error: 'Service tokens have no preferences to update.' }, 403);
+  }
+
   const { preferredAvatarId } = c.req.valid('json');
 
   // Validate the avatar belongs to this org (or is a built-in avatar)
