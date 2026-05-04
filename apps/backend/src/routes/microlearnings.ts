@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { eq, and, asc, inArray, or, isNull } from 'drizzle-orm';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
+import type { UserAuthContext } from '../types/auth.js';
 import { db } from '../db/index.js';
 import {
   microlearnings,
@@ -31,7 +32,7 @@ microlearningsRouter.use('*', authMiddleware());
  */
 microlearningsRouter.get('/my', async (c) => {
 
-  const auth = c.get('auth');
+  const auth = c.get('auth') as UserAuthContext;
 
   // Find groups the user belongs to
   const groupMemberships = await db
@@ -118,7 +119,7 @@ microlearningsRouter.get('/my', async (c) => {
  */
 microlearningsRouter.get('/feed', async (c) => {
 
-  const auth = c.get('auth');
+  const auth = c.get('auth') as UserAuthContext;
 
   // ── 0. Fetch org expiration interval ──────────────────────────────────────
 
@@ -305,7 +306,7 @@ microlearningsRouter.get('/feed', async (c) => {
  */
 microlearningsRouter.get('/:id', async (c) => {
 
-  const auth = c.get('auth');
+  const auth = c.get('auth') as UserAuthContext;
   const id = c.req.param('id');
 
   const [ml] = await db
@@ -321,7 +322,7 @@ microlearningsRouter.get('/:id', async (c) => {
     return c.json({ error: 'Microlearning not found.' }, 404);
   }
 
-  // Non-admin users can only access published MLs assigned to their groups
+  // Non-admin users can only access published MLs assigned to their groups.
   if (auth.role !== 'admin') {
 
     if (ml.status !== 'published') {

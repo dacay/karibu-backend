@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, inArray } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.js';
+import type { UserAuthContext } from '../types/auth.js';
 import { openai, deepgram } from '../ai/mastra.js';
 import { saveChat, loadChat } from '../services/chat.js';
 import { queryDocuments } from '../services/chromadb.js';
@@ -115,7 +116,7 @@ Guidelines:
  */
 chat.get('/ml/:microlearningId', async (c) => {
 
-  const auth = c.get('auth');
+  const auth = c.get('auth') as UserAuthContext;
   const microlearningId = c.req.param('microlearningId');
 
   const [existing] = await db
@@ -161,7 +162,7 @@ chat.post('/ml', zValidator('json', mlChatSchema), async (c) => {
 
   const { chatId, microlearningId } = c.req.valid('json');
   const messages = c.req.valid('json').messages as UIMessage[];
-  const auth = c.get('auth');
+  const auth = c.get('auth') as UserAuthContext;
 
   // Load the microlearning
   const [ml] = await db
@@ -447,7 +448,7 @@ chat.post('/assistant', zValidator('json', assistantChatSchema), async (c) => {
 
   const { chatId } = c.req.valid('json');
   const messages = c.req.valid('json').messages as UIMessage[];
-  const auth = c.get('auth');
+  const auth = c.get('auth') as UserAuthContext;
 
   const [assistantOrg] = await db
     .select({ name: organizations.name })

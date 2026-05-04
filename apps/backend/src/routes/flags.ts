@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, desc, count } from 'drizzle-orm';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
+import type { UserAuthContext } from '../types/auth.js';
 import { db } from '../db/index.js';
 import { flaggedMessages, chatMessages, chats, users, microlearnings } from '../db/schema.js';
 import { logger } from '../config/logger.js';
@@ -24,7 +25,7 @@ flagsRouter.post(
     reason: z.string().max(500).optional(),
   })),
   async (c) => {
-    const auth = c.get('auth');
+    const auth = c.get('auth') as UserAuthContext;
     const { messageId, chatId, reason } = c.req.valid('json');
 
     // Verify the message belongs to this org

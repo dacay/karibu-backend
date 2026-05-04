@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { eq, and, desc } from 'drizzle-orm';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
+import type { UserAuthContext } from '../types/auth.js';
 import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
 import { uploadToDocsBucket, deleteFromDocsBucket, buildDocumentKey } from '../services/s3.js';
@@ -31,7 +32,7 @@ const MAX_FILE_SIZE_BYTES = env.S3_MAX_UPLOAD_SIZE_MB * 1024 * 1024;
  */
 documentsRouter.post('/upload', requireRole('admin'), async (c) => {
 
-  const auth = c.get('auth');
+  const auth = c.get('auth') as UserAuthContext;
 
   let formData: FormData;
 

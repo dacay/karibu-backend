@@ -2,10 +2,11 @@ import type { JWTPayload as BaseJWTPayload } from 'hono/utils/jwt/types';
 
 export interface JWTPayload extends BaseJWTPayload {
 
-  sub: string; // user ID
-  jti: string; // session ID for revocation
+  sub: string; // user ID for human tokens, service-account ID for service tokens
+  jti: string; // credential ID for revocation (auth_sessions.id or api_keys.id)
   organizationId: string;
   role: 'admin' | 'user';
+  kind?: 'user' | 'service'; // absent = 'user' (back-compat with already-issued human tokens)
 }
 
 export interface User {
@@ -52,13 +53,28 @@ export interface Organization {
   updatedAt: Date;
 }
 
-export interface AuthContext {
+export type AuthContext =
+  | {
+      kind: 'user';
+      userId: string;
+      organizationId: string;
+      sessionId: string;
+      role: 'admin' | 'user';
+    }
+  | {
+      kind: 'service';
+      serviceAccountId: string;
+      apiKeyId: string;
+      organizationId: string;
+      role: 'admin';
+    };
 
-  userId: string;
-  organizationId: string;
-  sessionId: string;
-  role: 'admin' | 'user';
-}
+/**
+ * Narrowed AuthContext for user-only routes (default `authMiddleware()`).
+ * Cast `c.get('auth') as UserAuthContext` in handlers — safe because the
+ * middleware 403s service tokens before the handler runs.
+ */
+export type UserAuthContext = Extract<AuthContext, { kind: 'user' }>;
 
 // Extend Hono's context with auth context type
 declare module 'hono' {

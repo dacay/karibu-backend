@@ -1,6 +1,6 @@
 import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, authSessions, authTokens } from '../db/schema.js';
+import { users, authSessions, authTokens, apiKeys, serviceAccounts } from '../db/schema.js';
 import { verifyPassword } from '../utils/crypto.js';
 import { generateToken } from '../utils/jwt.js';
 import { LRUCache } from '../utils/cache.js';
@@ -8,6 +8,14 @@ import { logger } from '../config/logger.js';
 import type { Organization } from '../types/auth.js';
 
 const sessionValidityCache = new LRUCache<string, boolean>(10_000);
+
+interface LoadedApiKey {
+  apiKeyId: string;
+  serviceAccountId: string;
+  organizationId: string;
+}
+
+const apiKeyCache = new LRUCache<string, LoadedApiKey | null>(10_000);
 
 export interface LoginResult {
 
@@ -281,4 +289,98 @@ export const revokeSession = async (jti: string): Promise<boolean> => {
 
     return false;
   }
+}
+
+/**
+ * Load a valid (non-revoked, non-expired) api_key joined to its service_account.
+ * Returns null if missing, revoked, or expired. Cached by api key id.
+ */
+export const loadApiKey = async (apiKeyId: string): Promise<LoadedApiKey | null> => {
+
+  const cached = apiKeyCache.get(apiKeyId);
+
+  if (cached !== undefined) {
+
+    return cached;
+  }
+
+  try {
+
+    const [row] = await db
+      .select({
+        apiKeyId: apiKeys.id,
+        serviceAccountId: serviceAccounts.id,
+        organizationId: serviceAccounts.organizationId,
+        expiresAt: apiKeys.expiresAt,
+        revokedAt: apiKeys.revokedAt,
+      })
+      .from(apiKeys)
+      .innerJoin(serviceAccounts, eq(apiKeys.serviceAccountId, serviceAccounts.id))
+      .where(
+        and(
+          eq(apiKeys.id, apiKeyId),
+          isNull(apiKeys.revokedAt)
+        )
+      )
+      .limit(1);
+
+    const result: LoadedApiKey | null =
+      row && row.expiresAt > new Date()
+        ? {
+            apiKeyId: row.apiKeyId,
+            serviceAccountId: row.serviceAccountId,
+            organizationId: row.organizationId,
+          }
+        : null;
+
+    apiKeyCache.set(apiKeyId, result);
+
+    return result;
+
+  } catch (err) {
+
+    logger.error({ err, apiKeyId }, 'Failed to load api key.');
+
+    return null;
+  }
+}
+
+/**
+ * Revoke an API key.
+ */
+export const revokeApiKey = async (apiKeyId: string): Promise<boolean> => {
+
+  try {
+
+    await db
+      .update(apiKeys)
+      .set({ revokedAt: new Date() })
+      .where(eq(apiKeys.id, apiKeyId));
+
+    apiKeyCache.set(apiKeyId, null);
+
+    logger.debug({ apiKeyId }, 'API key revoked.');
+
+    return true;
+
+  } catch (err) {
+
+    logger.error({ err, apiKeyId }, 'Failed to revoke API key.');
+
+    return false;
+  }
+}
+
+/**
+ * Best-effort update of api_keys.last_used_at. Fire-and-forget — do not block requests on this.
+ */
+export const touchApiKeyLastUsed = (apiKeyId: string): void => {
+
+  db.update(apiKeys)
+    .set({ lastUsedAt: new Date() })
+    .where(eq(apiKeys.id, apiKeyId))
+    .catch((err) => {
+
+      logger.debug({ err, apiKeyId }, 'Failed to touch api_key.last_used_at.');
+    });
 }

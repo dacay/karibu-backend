@@ -3,6 +3,7 @@ import { eq, and, or, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { authMiddleware } from '../middleware/auth.js';
+import type { UserAuthContext } from '../types/auth.js';
 import { db } from '../db/index.js';
 import { users, avatars, organizations } from '../db/schema.js';
 import { logger } from '../config/logger.js';
@@ -17,7 +18,7 @@ userRouter.use('*', authMiddleware());
  */
 userRouter.get('/me', async (c) => {
 
-  const auth = c.get('auth');
+  const auth = c.get('auth') as UserAuthContext;
 
   const [row] = await db
     .select({
@@ -51,7 +52,7 @@ const updatePreferencesSchema = z.object({
  */
 userRouter.patch('/preferences', zValidator('json', updatePreferencesSchema), async (c) => {
 
-  const auth = c.get('auth');
+  const auth = c.get('auth') as UserAuthContext;
   const { preferredAvatarId } = c.req.valid('json');
 
   // Validate the avatar belongs to this org (or is a built-in avatar)

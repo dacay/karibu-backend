@@ -33,6 +33,7 @@ export const generateToken = async (
     aud: env.JWT_AUDIENCE,
     iat: now,
     exp,
+    kind: 'user',
   };
 
   try {
@@ -50,6 +51,56 @@ export const generateToken = async (
     logger.error({ err }, 'Failed to generate JWT token.');
 
     throw new Error('Token generation failed');
+  }
+}
+
+/**
+ * Generate a long-lived JWT for a service account (API key).
+ * The JWT carries `kind: 'service'`, `sub: serviceAccountId`, `jti: apiKeyId`.
+ * Caller is responsible for inserting the matching api_keys row.
+ */
+export const generateApiKey = async (
+  serviceAccountId: string,
+  apiKeyId: string,
+  organizationId: string,
+  expiresIn: StringValue
+): Promise<{ token: string; expiresAt: Date }> => {
+
+  const expiresInMs = ms(expiresIn);
+
+  if (typeof expiresInMs !== 'number') {
+
+    throw new Error(`Invalid expiresIn format: ${expiresIn}`);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + Math.floor(expiresInMs / 1000);
+
+  const payload: JWTPayload = {
+    sub: serviceAccountId,
+    jti: apiKeyId,
+    role: 'admin',
+    organizationId,
+    aud: env.JWT_AUDIENCE,
+    iat: now,
+    exp,
+    kind: 'service',
+  };
+
+  try {
+
+    const token = await sign(payload, env.JWT_SECRET, env.JWT_ALGORITHM);
+
+    return {
+      token,
+      expiresAt: new Date(exp * 1000),
+    };
+
+  } catch (err) {
+
+    logger.error({ err }, 'Failed to generate API key.');
+
+    throw new Error('API key generation failed');
   }
 }
 

@@ -12,7 +12,7 @@ import { logger } from '../config/logger.js';
 const teamRouter = new Hono();
 
 // All team routes require authentication
-teamRouter.use('*', authMiddleware());
+teamRouter.use('*', authMiddleware({ allowApiKey: true }));
 
 // All team routes are admin-only
 teamRouter.use('*', requireRole('admin'));
@@ -361,8 +361,8 @@ teamRouter.delete('/:userId', async (c) => {
   const auth = c.get('auth');
   const userId = c.req.param('userId');
 
-  // Cannot remove yourself
-  if (userId === auth.userId) {
+  // Cannot remove yourself (service callers don't correspond to a user, so this only applies to humans)
+  if (auth.kind === 'user' && userId === auth.userId) {
 
     return c.json({ error: 'Cannot remove yourself.' }, 400);
   }

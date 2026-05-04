@@ -38,9 +38,11 @@ learnerSSERouter.get('/stream', async (c) => {
   try {
     const payload = await verifyToken(token);
     if (!payload.jti) throw new Error('Missing jti');
+    if (payload.kind === 'service') throw new Error('Learner stream is not available to service tokens');
     const isValid = await isSessionValid(payload.jti);
     if (!isValid) throw new Error('Session invalid or revoked');
     auth = {
+      kind: 'user',
       userId: payload.sub,
       organizationId: payload.organizationId,
       sessionId: payload.jti,
