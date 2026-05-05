@@ -145,7 +145,7 @@ org.patch('/config', zValidator('json', updateConfigSchema), async (c) => {
         defaultAvatarId: organizations.defaultAvatarId,
       });
 
-    logger.info({ organizationId: organization.id }, 'Org config updated.');
+    logger.debug({ organizationId: organization.id }, 'Org config updated.');
 
     return c.json(updated);
 
@@ -209,7 +209,7 @@ org.post('/logo', async (c) => {
 
     await invalidateCloudFrontPaths([s3Key]);
 
-    logger.info({ organizationId: organization.id, variant, s3Key }, 'Org logo uploaded.');
+    logger.debug({ organizationId: organization.id, variant, s3Key }, 'Org logo uploaded.');
 
     return c.json({ success: true, key: s3Key });
 
@@ -241,7 +241,7 @@ org.delete('/logo/:variant', async (c) => {
 
     await deleteFromAssetsBucket(s3Key);
 
-    logger.info({ organizationId: organization.id, variant }, 'Org logo deleted.');
+    logger.debug({ organizationId: organization.id, variant }, 'Org logo deleted.');
 
     return c.json({ success: true });
 

@@ -64,7 +64,7 @@ patternsRouter.post('/', requireRole('admin'), async (c) => {
     })
     .returning();
 
-  logger.info({ patternId: pattern.id, organizationId: auth.organizationId }, 'Conversation pattern created.');
+  logger.debug({ patternId: pattern.id, organizationId: auth.organizationId }, 'Conversation pattern created.');
 
   return c.json({ pattern }, 201);
 });
@@ -109,7 +109,7 @@ patternsRouter.patch('/:id', requireRole('admin'), async (c) => {
     .where(eq(conversationPatterns.id, id))
     .returning();
 
-  logger.info({ patternId: id, organizationId: auth.organizationId }, 'Conversation pattern updated.');
+  logger.debug({ patternId: id, organizationId: auth.organizationId }, 'Conversation pattern updated.');
 
   return c.json({ pattern: updated });
 });
@@ -139,7 +139,7 @@ patternsRouter.delete('/:id', requireRole('admin'), async (c) => {
 
   await db.delete(conversationPatterns).where(eq(conversationPatterns.id, id));
 
-  logger.info({ patternId: id, organizationId: auth.organizationId }, 'Conversation pattern deleted.');
+  logger.debug({ patternId: id, organizationId: auth.organizationId }, 'Conversation pattern deleted.');
 
   return c.json({ success: true });
 });

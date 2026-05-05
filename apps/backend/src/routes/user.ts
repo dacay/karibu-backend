@@ -97,7 +97,7 @@ userRouter.patch('/preferences', zValidator('json', updatePreferencesSchema), as
     .where(eq(users.id, auth.userId))
     .limit(1);
 
-  logger.info({ userId: auth.userId, preferredAvatarId }, 'User avatar preference updated.');
+  logger.debug({ userId: auth.userId, preferredAvatarId }, 'User avatar preference updated.');
 
   return c.json({ user: updated });
 });

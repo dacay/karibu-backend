@@ -125,7 +125,7 @@ avatarsRouter.post('/', requireRole('admin'), async (c) => {
 
       await invalidateCloudFrontPaths([s3Key]);
 
-      logger.info({ avatarId: updated.id, organizationId: auth.organizationId }, 'Avatar created with image.');
+      logger.debug({ avatarId: updated.id, organizationId: auth.organizationId }, 'Avatar created with image.');
 
       return c.json({ avatar: updated }, 201);
 
@@ -137,7 +137,7 @@ avatarsRouter.post('/', requireRole('admin'), async (c) => {
     }
   }
 
-  logger.info({ avatarId: avatar.id, organizationId: auth.organizationId }, 'Avatar created.');
+  logger.debug({ avatarId: avatar.id, organizationId: auth.organizationId }, 'Avatar created.');
 
   return c.json({ avatar }, 201);
 });
@@ -237,7 +237,7 @@ avatarsRouter.patch('/:id', requireRole('admin'), async (c) => {
     .where(eq(avatars.id, id))
     .returning();
 
-  logger.info({ avatarId: id, organizationId: auth.organizationId }, 'Avatar updated.');
+  logger.debug({ avatarId: id, organizationId: auth.organizationId }, 'Avatar updated.');
 
   return c.json({ avatar: updated });
 });
@@ -276,7 +276,7 @@ avatarsRouter.delete('/:id', requireRole('admin'), async (c) => {
 
   await db.delete(avatars).where(eq(avatars.id, id));
 
-  logger.info({ avatarId: id, organizationId: auth.organizationId }, 'Avatar deleted.');
+  logger.debug({ avatarId: id, organizationId: auth.organizationId }, 'Avatar deleted.');
 
   return c.json({ success: true });
 });

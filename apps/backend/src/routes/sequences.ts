@@ -67,7 +67,7 @@ sequencesRouter.post('/', requireRole('admin'), async (c) => {
     })
     .returning();
 
-  logger.info({ sequenceId: sequence.id, organizationId: auth.organizationId }, 'Sequence created.');
+  logger.debug({ sequenceId: sequence.id, organizationId: auth.organizationId }, 'Sequence created.');
 
   return c.json({ sequence: { ...sequence, microlearnings: [] } }, 201);
 })
@@ -102,7 +102,7 @@ sequencesRouter.patch('/:id', requireRole('admin'), async (c) => {
     .where(eq(microlearningSequences.id, id))
     .returning();
 
-  logger.info({ sequenceId: id, organizationId: auth.organizationId }, 'Sequence updated.');
+  logger.debug({ sequenceId: id, organizationId: auth.organizationId }, 'Sequence updated.');
 
   return c.json({ sequence: updated });
 })
@@ -128,7 +128,7 @@ sequencesRouter.delete('/:id', requireRole('admin'), async (c) => {
 
   await db.delete(microlearningSequences).where(eq(microlearningSequences.id, id));
 
-  logger.info({ sequenceId: id, organizationId: auth.organizationId }, 'Sequence deleted.');
+  logger.debug({ sequenceId: id, organizationId: auth.organizationId }, 'Sequence deleted.');
 
   return c.json({ success: true });
 })
@@ -167,7 +167,7 @@ sequencesRouter.patch('/:id/reorder', requireRole('admin'), async (c) => {
     }
   });
 
-  logger.info({ sequenceId: id, organizationId: auth.organizationId }, 'Sequence reordered.');
+  logger.debug({ sequenceId: id, organizationId: auth.organizationId }, 'Sequence reordered.');
 
   return c.json({ success: true });
 })
@@ -264,7 +264,7 @@ sequencesRouter.post('/:id/assignments', requireRole('admin'), async (c) => {
     .values({ sequenceId: id, groupId: body.groupId })
     .returning();
 
-  logger.info({ sequenceId: id, groupId: body.groupId }, 'Sequence assignment created.');
+  logger.debug({ sequenceId: id, groupId: body.groupId }, 'Sequence assignment created.');
 
   // Notify learners in the newly assigned group that their feed may have new content
   broadcastFeedUpdate(auth.organizationId);
@@ -299,7 +299,7 @@ sequencesRouter.delete('/:id/assignments/:groupId', requireRole('admin'), async 
       eq(microlearningSequenceAssignments.groupId, groupId),
     ));
 
-  logger.info({ sequenceId: id, groupId }, 'Sequence assignment deleted.');
+  logger.debug({ sequenceId: id, groupId }, 'Sequence assignment deleted.');
 
   broadcastFeedUpdate(auth.organizationId);
 

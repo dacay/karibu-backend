@@ -25,7 +25,7 @@ metricsRouter.get('/', async (c) => {
   const auth = c.get('auth');
   const orgId = auth.organizationId;
 
-  logger.info({ orgId }, 'Fetching metrics...');
+  logger.debug({ orgId }, 'Fetching metrics...');
 
   const [
     usageFrequency,
@@ -43,7 +43,7 @@ metricsRouter.get('/', async (c) => {
     getCompletionsThisMonth(orgId),
   ]);
 
-  logger.info({ orgId }, 'Metrics fetched.');
+  logger.debug({ orgId }, 'Metrics fetched.');
 
   return c.json({
     usageFrequency,

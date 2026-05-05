@@ -90,7 +90,7 @@ documentsRouter.post('/upload', requireRole('admin'), async (c) => {
       .where(eq(documents.id, document.id))
       .returning();
 
-    logger.info({ documentId: updated.id, organizationId: auth.organizationId }, 'Document uploaded.');
+    logger.debug({ documentId: updated.id, organizationId: auth.organizationId }, 'Document uploaded.');
 
     // Fire-and-forget: processDocument never throws
     void processDocument(updated);
@@ -174,7 +174,7 @@ documentsRouter.delete('/:id', requireRole('admin'), async (c) => {
 
   await db.delete(documents).where(eq(documents.id, id));
 
-  logger.info({ documentId: id, organizationId: auth.organizationId }, 'Document deleted.');
+  logger.debug({ documentId: id, organizationId: auth.organizationId }, 'Document deleted.');
 
   return c.json({ success: true });
 })

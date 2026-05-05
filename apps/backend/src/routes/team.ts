@@ -102,7 +102,7 @@ teamRouter.post('/invite', zValidator('json', inviteSchema), async (c) => {
     return c.json({ error: `Invalid email format: ${invalidEmails.join(', ')}` }, 400);
   }
 
-  const invited: string[] = [];
+  const invited: { email: string; link: string }[] = [];
   const alreadyExists: string[] = [];
   const failed: string[] = [];
 
@@ -152,13 +152,17 @@ teamRouter.post('/invite', zValidator('json', inviteSchema), async (c) => {
         expiresAt,
       });
 
-      // Send invitation email with an org-scoped sign-in link
-      await sendInvitationEmail({
-        to: email,
-        organizationName: organization.name,
-        subdomain: organization.subdomain,
-        token,
-      });
+      // Send invitation email with an org-scoped sign-in link.
+      // Skipped for service-token callers — integrations get the link in the
+      // response and own delivery to the user.
+      if (auth.kind !== 'service') {
+        await sendInvitationEmail({
+          to: email,
+          organizationName: organization.name,
+          subdomain: organization.subdomain,
+          token,
+        });
+      }
 
       // Add user to "All Members" group, creating it first if needed
       let [allMembersGroup] = await db
@@ -176,9 +180,9 @@ teamRouter.post('/invite', zValidator('json', inviteSchema), async (c) => {
 
       await db.insert(userGroupMembers).values({ groupId: allMembersGroup.id, userId: newUser.id });
 
-      invited.push(email);
+      invited.push({ email, link: buildOrgUrl(organization.subdomain, '/', { token }) });
 
-      logger.info({ email, userId: newUser.id, organizationId: auth.organizationId }, 'User invited.');
+      logger.debug({ email, userId: newUser.id, organizationId: auth.organizationId, emailSent: auth.kind !== 'service' }, 'User invited.');
 
     } catch (err) {
 
@@ -288,7 +292,7 @@ teamRouter.post('/:userId/resend-invite', async (c) => {
     token: latestToken.token,
   });
 
-  logger.info({ userId, email: user.email }, 'Invitation email resent.');
+  logger.debug({ userId, email: user.email }, 'Invitation email resent.');
 
   return c.json({ success: true });
 })
@@ -347,7 +351,7 @@ teamRouter.post('/:userId/regenerate-token', async (c) => {
     token,
   });
 
-  logger.info({ userId, email: user.email }, 'Auth token regenerated and invitation email sent.');
+  logger.debug({ userId, email: user.email }, 'Auth token regenerated and invitation email sent.');
 
   return c.json({ success: true });
 })
@@ -391,7 +395,7 @@ teamRouter.delete('/:userId', async (c) => {
 
   await db.delete(users).where(eq(users.id, userId));
 
-  logger.info({ userId, email: user.email, organizationId: auth.organizationId }, 'User removed from organization.');
+  logger.debug({ userId, email: user.email, organizationId: auth.organizationId }, 'User removed from organization.');
 
   return c.json({ success: true });
 })

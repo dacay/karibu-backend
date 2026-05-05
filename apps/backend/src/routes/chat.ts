@@ -385,7 +385,7 @@ chat.post('/ml', zValidator('json', mlChatSchema), async (c) => {
                 ));
 
               justCompleted = true;
-              logger.info({ userId: auth.userId, microlearningId }, 'Microlearning marked as completed.');
+              logger.debug({ userId: auth.userId, microlearningId }, 'Microlearning marked as completed.');
 
               return `Great work! ${summary}`;
             } catch (err) {

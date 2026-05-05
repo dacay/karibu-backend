@@ -57,7 +57,7 @@ userGroupsRouter.post('/', async (c) => {
     })
     .returning();
 
-  logger.info({ groupId: group.id, organizationId: auth.organizationId }, 'User group created.');
+  logger.debug({ groupId: group.id, organizationId: auth.organizationId }, 'User group created.');
 
   return c.json({ group: { ...group, memberCount: 0 } }, 201);
 });
@@ -124,7 +124,7 @@ userGroupsRouter.delete('/:id', async (c) => {
 
   await db.delete(userGroups).where(eq(userGroups.id, id));
 
-  logger.info({ groupId: id, organizationId: auth.organizationId }, 'User group deleted.');
+  logger.debug({ groupId: id, organizationId: auth.organizationId }, 'User group deleted.');
 
   return c.json({ success: true });
 });

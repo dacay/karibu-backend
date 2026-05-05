@@ -56,7 +56,7 @@ flagsRouter.post(
       })
       .returning();
 
-    logger.info({ flagId: flag.id, messageId, orgId: auth.organizationId }, 'Message flagged.');
+    logger.debug({ flagId: flag.id, messageId, orgId: auth.organizationId }, 'Message flagged.');
 
     return c.json({ flag }, 201);
   }
@@ -183,7 +183,7 @@ flagsRouter.patch(
       return c.json({ error: 'Flag not found' }, 404);
     }
 
-    logger.info({ flagId: id, status, orgId: auth.organizationId }, 'Flag status updated.');
+    logger.debug({ flagId: id, status, orgId: auth.organizationId }, 'Flag status updated.');
 
     return c.json({ flag: updated });
   }

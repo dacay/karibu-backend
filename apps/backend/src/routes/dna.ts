@@ -71,7 +71,7 @@ dnaRouter.post('/topics', requireRole('admin'), async (c) => {
     description: body.description?.trim() ?? '',
   }).returning();
 
-  logger.info({ topicId: topic.id, organizationId: auth.organizationId }, 'DNA topic created.');
+  logger.debug({ topicId: topic.id, organizationId: auth.organizationId }, 'DNA topic created.');
 
   return c.json({ topic }, 201);
 });
@@ -202,7 +202,7 @@ dnaRouter.delete('/topics/:id', requireRole('admin'), async (c) => {
 
   await db.delete(dnaTopics).where(eq(dnaTopics.id, id));
 
-  logger.info({ topicId: id, organizationId: auth.organizationId }, 'DNA topic deleted.');
+  logger.debug({ topicId: id, organizationId: auth.organizationId }, 'DNA topic deleted.');
 
   return c.json({ success: true });
 });
@@ -239,7 +239,7 @@ dnaRouter.post('/topics/:topicId/subtopics', requireRole('admin'), async (c) => 
     description: body.description?.trim() ?? '',
   }).returning();
 
-  logger.info({ subtopicId: subtopic.id, topicId, organizationId: auth.organizationId }, 'DNA subtopic created.');
+  logger.debug({ subtopicId: subtopic.id, topicId, organizationId: auth.organizationId }, 'DNA subtopic created.');
 
   return c.json({ subtopic }, 201);
 });
@@ -283,7 +283,7 @@ dnaRouter.delete('/subtopics/:id', requireRole('admin'), async (c) => {
 
   await db.delete(dnaSubtopics).where(eq(dnaSubtopics.id, id));
 
-  logger.info({ subtopicId: id, organizationId: auth.organizationId }, 'DNA subtopic deleted.');
+  logger.debug({ subtopicId: id, organizationId: auth.organizationId }, 'DNA subtopic deleted.');
 
   return c.json({ success: true });
 });
@@ -552,7 +552,7 @@ dnaRouter.post('/subtopics/:id/values', requireRole('admin'), async (c) => {
     userEdited: true,
   }).returning();
 
-  logger.info({ valueId: value.id, subtopicId: id, organizationId: auth.organizationId }, 'DNA value manually created.');
+  logger.debug({ valueId: value.id, subtopicId: id, organizationId: auth.organizationId }, 'DNA value manually created.');
 
   return c.json({ value }, 201);
 });
@@ -587,7 +587,7 @@ dnaRouter.patch('/values/:id/content', requireRole('admin'), async (c) => {
     .where(eq(dnaValues.id, id))
     .returning();
 
-  logger.info({ valueId: id, organizationId: auth.organizationId }, 'DNA value content updated by user.');
+  logger.debug({ valueId: id, organizationId: auth.organizationId }, 'DNA value content updated by user.');
 
   return c.json({ value: updated });
 });
@@ -646,7 +646,7 @@ dnaRouter.delete('/values/:id', requireRole('admin'), async (c) => {
 
   await db.delete(dnaValues).where(eq(dnaValues.id, id));
 
-  logger.info({ valueId: id, organizationId: auth.organizationId }, 'DNA value deleted.');
+  logger.debug({ valueId: id, organizationId: auth.organizationId }, 'DNA value deleted.');
 
   return c.json({ success: true });
 });
@@ -819,7 +819,7 @@ dnaRouter.patch('/topics/:id/status', requireRole('admin'), async (c) => {
     .where(eq(dnaTopics.id, id))
     .returning();
 
-  logger.info({ topicId: id, status: body.status, organizationId: auth.organizationId }, 'DNA topic status updated.');
+  logger.debug({ topicId: id, status: body.status, organizationId: auth.organizationId }, 'DNA topic status updated.');
 
   return c.json({ topic: updated });
 });
@@ -854,7 +854,7 @@ dnaRouter.patch('/subtopics/:id/status', requireRole('admin'), async (c) => {
     .where(eq(dnaSubtopics.id, id))
     .returning();
 
-  logger.info({ subtopicId: id, status: body.status, organizationId: auth.organizationId }, 'DNA subtopic status updated.');
+  logger.debug({ subtopicId: id, status: body.status, organizationId: auth.organizationId }, 'DNA subtopic status updated.');
 
   return c.json({ subtopic: updated });
 });

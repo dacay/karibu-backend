@@ -485,7 +485,7 @@ microlearningsRouter.post('/', requireRole('admin'), async (c) => {
     })
     .returning();
 
-  logger.info({ microlearningId: ml.id, organizationId: auth.organizationId }, 'Microlearning created.');
+  logger.debug({ microlearningId: ml.id, organizationId: auth.organizationId }, 'Microlearning created.');
 
   // Fire-and-forget: generate a cover image for the ML
   generateMlImage(ml.id).catch((err) => {
@@ -540,7 +540,7 @@ microlearningsRouter.patch('/:id', requireRole('admin'), async (c) => {
     .where(eq(microlearnings.id, id))
     .returning();
 
-  logger.info({ microlearningId: id, organizationId: auth.organizationId }, 'Microlearning updated.');
+  logger.debug({ microlearningId: id, organizationId: auth.organizationId }, 'Microlearning updated.');
 
   // Notify connected learners when an ML is published
   if (body.status === 'published') {
@@ -571,7 +571,7 @@ microlearningsRouter.delete('/:id', requireRole('admin'), async (c) => {
 
   await db.delete(microlearnings).where(eq(microlearnings.id, id));
 
-  logger.info({ microlearningId: id, organizationId: auth.organizationId }, 'Microlearning deleted.');
+  logger.debug({ microlearningId: id, organizationId: auth.organizationId }, 'Microlearning deleted.');
 
   return c.json({ success: true });
 })
@@ -600,7 +600,7 @@ microlearningsRouter.post('/:id/regenerate-image', requireRole('admin'), async (
     logger.error({ err, microlearningId: id }, 'Background ML image regeneration failed.');
   });
 
-  logger.info({ microlearningId: id, organizationId: auth.organizationId }, 'ML cover image regeneration triggered.');
+  logger.debug({ microlearningId: id, organizationId: auth.organizationId }, 'ML cover image regeneration triggered.');
 
   return c.json({ success: true });
 })

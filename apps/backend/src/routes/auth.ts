@@ -26,7 +26,7 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
 
     if ('token' in body) {
 
-      logger.info('Processing token login...');
+      logger.debug('Processing token login...');
 
       const result = await loginWithToken(body.token, organization, ipAddress, userAgent);
 
