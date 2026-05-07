@@ -16,6 +16,7 @@ interface FieldDef {
   type: string;
   readOnly: boolean;
   linkedCollectionId?: string;
+  selectOptions?: { id: string; name: string }[] | null;
 }
 
 interface RoleRecord {
@@ -42,6 +43,14 @@ interface DiscoveredSchema {
   // template UUIDs we mint via POST /tasks/template. Used as a schemaId in
   // the assign payload to api.teambridge.com/collections/v2/create_record.
   taskTemplateFieldId: string;
+
+  // The "Karibu Completed" field on the shift collection. Set when a nurse
+  // completes their verification microlearning in Karibu, then auto-applied
+  // to every subsequent shift assigned to the same (nurse, facility) pair.
+  // We support both BOOLEAN (write "true") and SINGLE_SELECT (write the
+  // option named "Completed", stored here as a UUID).
+  karibuCompletedFieldId: string;
+  karibuCompletedValue: string;
 
   // null = no role filter configured (TEAMBRIDGE_ELIGIBLE_ROLES unset).
   // Set = onboarding only proceeds for users with at least one matching role ID.
@@ -141,6 +150,37 @@ export async function discoverSchema(): Promise<DiscoveredSchema> {
     'task field name="Task Template" type=SINGLE_SELECT',
   );
 
+  // "Karibu Completed" — written to a shift after the nurse completes their
+  // verification ML in Karibu. Boolean → "true"; single-select → option named
+  // "Completed". Boot fails loud if neither shape matches.
+  const karibuCompletedField = findOneOrThrow(
+    shiftFields,
+    (f) => /^karibu\s*completed$/i.test(f.name),
+    'shift field name="Karibu Completed"',
+  );
+  let karibuCompletedValue: string;
+  if (karibuCompletedField.type === "BOOLEAN") {
+    karibuCompletedValue = "true";
+  } else if (karibuCompletedField.type === "SINGLE_SELECT") {
+    const completed = (karibuCompletedField.selectOptions ?? []).find((o) =>
+      /^completed$/i.test(o.name),
+    );
+    if (!completed) {
+      throw new Error(
+        `schema discovery: shift field "Karibu Completed" is SINGLE_SELECT but has no option named "Completed". Got: ${(
+          karibuCompletedField.selectOptions ?? []
+        )
+          .map((o) => o.name)
+          .join(", ")}`,
+      );
+    }
+    karibuCompletedValue = completed.id;
+  } else {
+    throw new Error(
+      `schema discovery: shift field "Karibu Completed" has unsupported type ${karibuCompletedField.type}; expected BOOLEAN or SINGLE_SELECT`,
+    );
+  }
+
   const roleNameField = findNamedOrFirstText(roleFields, "role collection");
 
   // Resolve eligible role names → role UUIDs by listing the role records once.
@@ -191,6 +231,8 @@ export async function discoverSchema(): Promise<DiscoveredSchema> {
     taskTitleFieldId: taskTitle.id,
     taskAssigneeFieldId: taskAssignee.id,
     taskTemplateFieldId: taskTemplate.id,
+    karibuCompletedFieldId: karibuCompletedField.id,
+    karibuCompletedValue,
     eligibleRoleIds,
   };
 
@@ -206,6 +248,9 @@ export async function discoverSchema(): Promise<DiscoveredSchema> {
       taskTitleFieldId: cached.taskTitleFieldId,
       taskAssigneeFieldId: cached.taskAssigneeFieldId,
       taskTemplateFieldId: cached.taskTemplateFieldId,
+      karibuCompletedFieldId: cached.karibuCompletedFieldId,
+      karibuCompletedFieldType: karibuCompletedField.type,
+      karibuCompletedValue: cached.karibuCompletedValue,
       eligibleRoleCount: cached.eligibleRoleIds?.size ?? null,
       shiftFieldCount: cached.shiftFields.length,
     },

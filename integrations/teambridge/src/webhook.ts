@@ -1,12 +1,15 @@
 import type { Context } from "hono";
+import { and, eq } from "drizzle-orm";
 import { config } from "./config.js";
 import { logger } from "./logger.js";
 import { verifyWebhook } from "./signature.js";
 import { isDuplicateEvent, diffAndUpdateShift } from "./state.js";
-import { getShift, extractAssigneeIds, type ShiftRecord } from "./teambridge.js";
+import { getShift, extractAssigneeIds, setShiftField, type ShiftRecord } from "./teambridge.js";
 import { getFacility } from "./facilities.js";
 import { getSchema, fieldName } from "./schema.js";
 import { onboardNurseToFacility } from "./onboarding.js";
+import { db } from "./db/client.js";
+import { teambridgeNurseFacilityVerifications } from "./db/schema.js";
 
 const log = logger.child({ module: "webhook" });
 
@@ -142,9 +145,34 @@ async function processShiftUpdate(event: WebhookEvent): Promise<void> {
   const assigneeIds = extractAssigneeIds(shift);
   for (const nurseId of assigneeIds) {
     try {
-      await onboardNurseToFacility(facility, facilityId!, nurseId, event.account_id);
+      await onboardNurseToFacility(facility, facilityId!, nurseId, event.account_id, record_id);
     } catch {
       // already logged inside onboardNurseToFacility
+    }
+  }
+
+  // Auto-populate "Karibu Completed" on this shift for any assignee already
+  // verified at this facility. The verifications row is created when Karibu
+  // fires the ML-completed webhook back to us. Idempotent — Teambridge accepts
+  // re-writes of the same value as a no-op.
+  const { karibuCompletedFieldId, karibuCompletedValue } = getSchema();
+  for (const nurseId of assigneeIds) {
+    const verified = await db
+      .select({ nurseId: teambridgeNurseFacilityVerifications.nurseId })
+      .from(teambridgeNurseFacilityVerifications)
+      .where(
+        and(
+          eq(teambridgeNurseFacilityVerifications.nurseId, nurseId),
+          eq(teambridgeNurseFacilityVerifications.facilityId, facilityId!),
+        ),
+      )
+      .limit(1);
+    if (verified.length === 0) continue;
+    try {
+      await setShiftField(record_id, karibuCompletedFieldId, karibuCompletedValue);
+      log.info({ ...ctx, nurseId }, "auto-applied Karibu Completed on shift");
+    } catch (err) {
+      log.error({ ...ctx, nurseId, err }, "auto-apply Karibu Completed failed");
     }
   }
 }

@@ -28,8 +28,8 @@ import type { Facility } from "./facilities.js";
 const log = logger.child({ module: "onboarding" });
 
 interface InviteResponse {
-  invited: { email: string; link: string }[];
-  alreadyExists: string[];
+  invited: { email: string; userId: string; link: string }[];
+  alreadyExists: { email: string; userId: string; link: string }[];
   failed: string[];
 }
 
@@ -38,6 +38,7 @@ export async function onboardNurseToFacility(
   facilityId: string,
   nurseId: string,
   accountId: string,
+  firstShiftId: string,
 ): Promise<void> {
   const ctx = { facilityId, facilityName: facility.name, nurseId };
 
@@ -73,7 +74,7 @@ export async function onboardNurseToFacility(
 
   const claimed = await db
     .insert(teambridgeNurseFacilityInvites)
-    .values({ nurseId, facilityId })
+    .values({ nurseId, facilityId, firstShiftId, accountId })
     .onConflictDoNothing()
     .returning({ nurseId: teambridgeNurseFacilityInvites.nurseId });
   if (claimed.length === 0) {
@@ -91,7 +92,17 @@ export async function onboardNurseToFacility(
       method: "POST",
       body: JSON.stringify({ emails: user.email }),
     });
-    await db.update(teambridgeNurseFacilityInvites).set({ karibuInvitedAt: new Date() }).where(where);
+    // Both arrays carry the same shape now — we don't care whether the user
+    // was just created or already existed, just need the sign-in link to embed
+    // in the Teambridge task template.
+    const inviteEntry = inviteResp.invited[0] ?? inviteResp.alreadyExists[0];
+    await db
+      .update(teambridgeNurseFacilityInvites)
+      .set({
+        karibuInvitedAt: new Date(),
+        karibuUserId: inviteEntry?.userId,
+      })
+      .where(where);
     log.info(
       {
         ...ctx,
@@ -103,16 +114,13 @@ export async function onboardNurseToFacility(
       "nurse invited to Karibu org",
     );
 
-    const link = inviteResp.invited[0]?.link;
+    const link = inviteEntry?.link;
     if (!link) {
-      log.warn(
-        { ...ctx, alreadyExists: inviteResp.alreadyExists.length },
-        "no invite link in response — skipping Teambridge task template creation",
-      );
+      log.warn(ctx, "no invite link in response — skipping Teambridge task template creation");
       return;
     }
 
-    const template = await createTaskTemplate(`Karibu Verification @ ${facility.name}`, link);
+    const template = await createTaskTemplate(`Verification @ ${facility.name}`, link);
     await db
       .update(teambridgeNurseFacilityInvites)
       .set({

@@ -50,7 +50,35 @@ export const teambridgeNurseFacilityInvites = integrations.table(
     // POST /collections/v2/create_record after assigning the template to the
     // nurse. This is the handle to update/complete/dismiss the task later.
     taskRecordId: text("task_record_id"),
+    // Karibu user UUID returned by /team/invite — needed to resolve the nurse
+    // when Karibu fires the ML-completed webhook back at us.
+    karibuUserId: text("karibu_user_id"),
+    // Teambridge shift record_id from the webhook event that triggered onboarding.
+    // We mark the "Karibu Completed" field on this specific shift when the nurse
+    // completes their verification ML in Karibu.
+    firstShiftId: text("first_shift_id"),
+    // Teambridge accountId, captured from the originating webhook. Needed for
+    // the web API delete call (DELETE /collections/delete_records) when we
+    // remove the verification task after ML completion.
+    accountId: text("account_id"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.nurseId, t.facilityId] })],
+);
+
+// One row per (nurse, facility, microlearning) ML completion received from Karibu.
+// Presence of any row for (nurse, facility) means the pair is "verified" — the
+// shift_updated handler reads this and auto-marks Karibu Verified on every new
+// shift assigned to that nurse at the facility.
+export const teambridgeNurseFacilityVerifications = integrations.table(
+  "teambridge_nurse_facility_verifications",
+  {
+    nurseId: text("nurse_id").notNull(),
+    facilityId: text("facility_id").notNull(),
+    microlearningId: text("microlearning_id").notNull(),
+    karibuUserId: text("karibu_user_id").notNull(),
+    verifiedAt: timestamp("verified_at").notNull().defaultNow(),
+    receivedPayload: jsonb("received_payload").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.nurseId, t.facilityId, t.microlearningId] })],
 );

@@ -41,4 +41,8 @@ export const config = {
   // Per-tenant: location UUIDs differ between sandbox and prod, so point this at
   // facilities.sandbox.json or facilities.prod.json depending on env.
   facilitiesFile: process.env.FACILITIES_FILE ?? "facilities.json",
+  // Optional shared bearer for the inbound Karibu → integration webhook
+  // (POST /webhooks/karibu/ml-completed). If unset, the endpoint accepts
+  // anything — fine for PoC, set in prod.
+  karibuWebhookBearer: process.env.KARIBU_WEBHOOK_BEARER ?? null,
 };

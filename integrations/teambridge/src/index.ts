@@ -5,6 +5,7 @@ import { logger } from "./logger.js";
 import { getAccessToken, startTokenRefreshLoop } from "./auth.js";
 import { discoverSchema } from "./schema.js";
 import { handleWebhook } from "./webhook.js";
+import { handleMlCompleted } from "./karibu_webhook.js";
 import { cleanupOldEvents } from "./state.js";
 
 const app = new Hono();
@@ -12,11 +13,16 @@ const app = new Hono();
 app.get("/", (c) =>
   c.json({
     service: "teambridge-integration",
-    endpoints: ["GET /health", "POST /webhooks/teambridge"],
+    endpoints: [
+      "GET /health",
+      "POST /webhooks/teambridge",
+      "POST /webhooks/karibu/ml-completed",
+    ],
   }),
 );
 app.get("/health", (c) => c.json({ ok: true }));
 app.post("/webhooks/teambridge", handleWebhook);
+app.post("/webhooks/karibu/ml-completed", handleMlCompleted);
 
 function startEventCleanupLoop() {
   const log = logger.child({ module: "cleanup" });

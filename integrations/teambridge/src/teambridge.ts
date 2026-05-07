@@ -165,3 +165,51 @@ export async function assignTask(opts: {
 export function extractAssigneeIds(shift: ShiftRecord): string[] {
   return extractLinkUuids(shift.fields[getSchema().shiftAssigneeFieldId]);
 }
+
+// Deletes one or more records from a collection via the Teambridge "web" API
+// (POST /collections/delete_records). The unified Open API has no equivalent
+// — same situation as task creation/assignment. Uses the static web bearer.
+export async function deleteRecords(opts: {
+  accountId: string;
+  collectionId: string;
+  recordIds: string[];
+}): Promise<void> {
+  const res = await fetch(`${config.teambridge.web.apiBase}/collections/delete_records`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${config.teambridge.web.token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      collectionId: opts.collectionId,
+      recordIds: opts.recordIds,
+      accountId: opts.accountId,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Delete records ${opts.recordIds.join(",")} on ${opts.collectionId} failed: ${res.status} ${await res.text()}`,
+    );
+  }
+}
+
+// Writes a single field on a shift record. Used to mark "Karibu Completed" once
+// the nurse completes their verification microlearning, and to auto-populate
+// it on every subsequent shift assigned to the same nurse at the same facility.
+//
+// Teambridge's updateRecord endpoint is PUT (not PATCH), but per the OpenAPI
+// description it's still a partial update — only the fields you include change.
+export async function setShiftField(
+  shiftId: string,
+  fieldId: string,
+  value: string,
+): Promise<void> {
+  const { shiftCollectionId } = getSchema();
+  const res = await tbFetch(`/v1/collections/${shiftCollectionId}/records/${shiftId}`, {
+    method: "PUT",
+    body: JSON.stringify({ data: { [fieldId]: value } }),
+  });
+  if (!res.ok) {
+    throw new Error(`Set shift field ${fieldId} on ${shiftId} failed: ${res.status} ${await res.text()}`);
+  }
+}
