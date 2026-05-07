@@ -14,7 +14,8 @@
     "db:seed:defaults": "tsx src/scripts/seed.defaults.ts",
     "db:seed:admins": "tsx src/scripts/seed.admins.ts",
     "db:create-org": "tsx src/scripts/create-org.ts",
-    "db:add-admin": "tsx src/scripts/add-admin.ts"
+    "db:add-admin": "tsx src/scripts/add-admin.ts",
+    "set-ml-webhook": "tsx src/scripts/set-ml-completion-webhook.ts"
   },
   "dependencies": {
     "@ai-sdk/deepgram": "^2.0.24",

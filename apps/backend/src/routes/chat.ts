@@ -33,6 +33,7 @@ import {
 } from '../db/schema.js';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
+import { notifyMlCompletion } from '../services/completion-webhook.js';
 
 const chat = new Hono();
 
@@ -388,6 +389,19 @@ chat.post('/ml', zValidator('json', mlChatSchema), async (c) => {
 
               justCompleted = true;
               logger.debug({ userId: auth.userId, microlearningId }, 'Microlearning marked as completed.');
+
+              // Fire-and-forget per-ML outbound completion webhook (used e.g. by
+              // the Teambridge integration to mark the learner's verification on
+              // their facility shifts). Failures handled inside notifyMlCompletion.
+              if (ml.completionWebhookUrl) {
+                void notifyMlCompletion({
+                  url: ml.completionWebhookUrl,
+                  karibuUserId: auth.userId,
+                  organizationId: auth.organizationId,
+                  microlearningId,
+                  completedAt: new Date(),
+                });
+              }
 
               return `Great work! ${summary}`;
             } catch (err) {

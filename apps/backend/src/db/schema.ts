@@ -119,6 +119,10 @@ export const microlearnings = pgTable('microlearnings', {
   sequenceId: uuid('sequence_id').references(() => microlearningSequences.id, { onDelete: 'set null' }),
   position: integer('position'),
   imageS3Key: text('image_s3_key'),
+  // Optional outbound webhook URL fired when this ML is marked completed.
+  // Per-ML, configured via SQL or `tsx src/scripts/set-ml-completion-webhook.ts`.
+  // Null = no webhook. Fire-and-forget; failures are logged, never raised.
+  completionWebhookUrl: text('completion_webhook_url'),
   ...timestamps,
 });
 

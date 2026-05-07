@@ -102,8 +102,8 @@ teamRouter.post('/invite', zValidator('json', inviteSchema), async (c) => {
     return c.json({ error: `Invalid email format: ${invalidEmails.join(', ')}` }, 400);
   }
 
-  const invited: { email: string; link: string }[] = [];
-  const alreadyExists: string[] = [];
+  const invited: { email: string; userId: string; link: string }[] = [];
+  const alreadyExists: { email: string; userId: string; link: string }[] = [];
   const failed: string[] = [];
 
   for (const email of emailList) {
@@ -124,7 +124,32 @@ teamRouter.post('/invite', zValidator('json', inviteSchema), async (c) => {
 
       if (existing) {
 
-        alreadyExists.push(email);
+        // Reuse the most recent auth token to build a sign-in link, or mint
+        // one if none exist. Returning a link here unblocks integrations
+        // (e.g. Teambridge) that need to reference the link regardless of
+        // whether we just created the user or it already existed.
+        const [latestToken] = await db
+          .select({ token: authTokens.token })
+          .from(authTokens)
+          .where(eq(authTokens.userId, existing.id))
+          .orderBy(desc(authTokens.createdAt))
+          .limit(1);
+
+        let token: string;
+        if (latestToken) {
+          token = latestToken.token;
+        } else {
+          token = generateLoginToken();
+          const expiresAt = new Date();
+          expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+          await db.insert(authTokens).values({ userId: existing.id, token, expiresAt });
+        }
+
+        alreadyExists.push({
+          email,
+          userId: existing.id,
+          link: buildOrgUrl(organization.subdomain, '/', { token }),
+        });
         continue;
       }
 
@@ -180,7 +205,11 @@ teamRouter.post('/invite', zValidator('json', inviteSchema), async (c) => {
 
       await db.insert(userGroupMembers).values({ groupId: allMembersGroup.id, userId: newUser.id });
 
-      invited.push({ email, link: buildOrgUrl(organization.subdomain, '/', { token }) });
+      invited.push({
+        email,
+        userId: newUser.id,
+        link: buildOrgUrl(organization.subdomain, '/', { token }),
+      });
 
       logger.debug({ email, userId: newUser.id, organizationId: auth.organizationId, emailSent: auth.kind !== 'service' }, 'User invited.');
 

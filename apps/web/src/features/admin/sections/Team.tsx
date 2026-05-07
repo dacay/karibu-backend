@@ -252,7 +252,7 @@ function InviteForm({ onClose }: InviteFormProps) {
                   Already a member ({result.alreadyExists.length})
                 </p>
                 <ul className="text-xs text-muted-foreground space-y-0.5 pl-2">
-                  {result.alreadyExists.map((e) => <li key={e}>{e}</li>)}
+                  {result.alreadyExists.map((e) => <li key={e.email}>{e.email}</li>)}
                 </ul>
               </div>
             )}
