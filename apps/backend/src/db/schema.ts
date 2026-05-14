@@ -32,6 +32,8 @@ export const users = pgTable('users', {
   email: text('email').notNull(),
   password: text('password').notNull(), // bcrypt hashed
   phoneNumber: text('phone_number'), // E.164 format (e.g., +14155552671)
+  firstName: text('first_name'),
+  lastName: text('last_name'),
   role: roleEnum('role').notNull().default('user'),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   // User's preferred avatar — stored as plain uuid (no FK) to avoid circular reference with avatars table

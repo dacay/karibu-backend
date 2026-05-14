@@ -221,6 +221,8 @@ export const DEFAULT_INACTIVITY_WINDOW_MS = 8 * 60 * 60 * 1000; // 8 hours
 export interface UserProfile {
   id: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
   role: "admin" | "user";
   organizationId: string;
   preferredAvatarId: string | null;
@@ -258,6 +260,8 @@ export interface MicrolearningSequence {
 export interface TeamMember {
   id: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
   role: "admin" | "user";
   createdAt: string;
   hasToken: boolean;
@@ -611,6 +615,11 @@ export const api = {
       request<{ success: boolean }>(`/team/${userId}/regenerate-token`, { method: "POST" }),
     remove: (userId: string) =>
       request<{ success: boolean }>(`/team/${userId}`, { method: "DELETE" }),
+    updateName: (userId: string, body: { firstName: string | null; lastName: string | null }) =>
+      request<{ success: boolean }>(`/team/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
   },
   user: {
     me: () =>

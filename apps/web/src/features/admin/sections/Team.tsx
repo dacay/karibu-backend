@@ -296,58 +296,74 @@ function InviteForm({ onClose }: InviteFormProps) {
 
 interface MemberActionsProps {
   member: TeamMember;
-  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink", id: string) => void;
+  canEditName: boolean;
+  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink" | "editName", id: string) => void;
   isPending: boolean;
   copiedUserId: string | null;
 }
 
-function MemberActions({ member, onAction, isPending, copiedUserId }: MemberActionsProps) {
-  if (member.role === "admin") return null;
-
+function MemberActions({ member, canEditName, onAction, isPending, copiedUserId }: MemberActionsProps) {
+  const isAdmin = member.role === "admin";
   const isCopied = copiedUserId === member.id;
 
   return (
     <div className="flex items-center gap-1">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-7 text-muted-foreground hover:text-foreground"
-        title="Copy sign-in link"
-        disabled={isPending}
-        onClick={(e) => { e.stopPropagation(); onAction("copyLink", member.id); }}
-      >
-        {isCopied ? <Check className="size-3.5 text-green-600" /> : <Link className="size-3.5" />}
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-7 text-muted-foreground hover:text-foreground"
-        title="Resend invitation email"
-        disabled={isPending}
-        onClick={(e) => { e.stopPropagation(); onAction("resend", member.id); }}
-      >
-        <Mail className="size-3.5" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-7 text-muted-foreground hover:text-foreground"
-        title="Regenerate sign-in token and resend email"
-        disabled={isPending}
-        onClick={(e) => { e.stopPropagation(); onAction("regenerate", member.id); }}
-      >
-        <RefreshCw className="size-3.5" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-7 text-muted-foreground hover:text-destructive"
-        title="Remove from team"
-        disabled={isPending}
-        onClick={(e) => { e.stopPropagation(); onAction("remove", member.id); }}
-      >
-        <Trash2 className="size-3.5" />
-      </Button>
+      {canEditName && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7 text-muted-foreground hover:text-foreground"
+          title="Edit name"
+          disabled={isPending}
+          onClick={(e) => { e.stopPropagation(); onAction("editName", member.id); }}
+        >
+          <Pencil className="size-3.5" />
+        </Button>
+      )}
+      {!isAdmin && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:text-foreground"
+            title="Copy sign-in link"
+            disabled={isPending}
+            onClick={(e) => { e.stopPropagation(); onAction("copyLink", member.id); }}
+          >
+            {isCopied ? <Check className="size-3.5 text-green-600" /> : <Link className="size-3.5" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:text-foreground"
+            title="Resend invitation email"
+            disabled={isPending}
+            onClick={(e) => { e.stopPropagation(); onAction("resend", member.id); }}
+          >
+            <Mail className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:text-foreground"
+            title="Regenerate sign-in token and resend email"
+            disabled={isPending}
+            onClick={(e) => { e.stopPropagation(); onAction("regenerate", member.id); }}
+          >
+            <RefreshCw className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:text-destructive"
+            title="Remove from team"
+            disabled={isPending}
+            onClick={(e) => { e.stopPropagation(); onAction("remove", member.id); }}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        </>
+      )}
     </div>
   );
 }
@@ -358,13 +374,15 @@ interface MemberRowProps {
   member: TeamMember;
   isLast: boolean;
   isPending: boolean;
-  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink", id: string) => void;
+  canEditName: boolean;
+  onAction: (action: "resend" | "regenerate" | "remove" | "copyLink" | "editName", id: string) => void;
   copiedUserId: string | null;
 }
 
-function MemberRow({ member, isLast, isPending, onAction, copiedUserId }: MemberRowProps) {
+function MemberRow({ member, isLast, isPending, canEditName, onAction, copiedUserId }: MemberRowProps) {
   const router = useRouter();
   const isClickable = member.role !== "admin";
+  const displayName = [member.firstName, member.lastName].filter(Boolean).join(" ");
 
   return (
     <tr
@@ -378,9 +396,16 @@ function MemberRow({ member, isLast, isPending, onAction, copiedUserId }: Member
       <td className="px-5 py-3">
         <div className="flex items-center gap-2 min-w-0">
           <div className="size-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium shrink-0 uppercase">
-            {member.email[0]}
+            {(member.firstName ?? member.email)[0]}
           </div>
-          <span className="truncate">{member.email}</span>
+          <div className="min-w-0">
+            {displayName && (
+              <div className="font-medium truncate">{displayName}</div>
+            )}
+            <div className={["truncate", displayName ? "text-xs text-muted-foreground" : ""].join(" ")}>
+              {member.email}
+            </div>
+          </div>
           {isPending && <Spinner className="size-3.5 text-muted-foreground shrink-0" />}
         </div>
       </td>
@@ -394,7 +419,7 @@ function MemberRow({ member, isLast, isPending, onAction, copiedUserId }: Member
         {member.tokenLastUsedAt ? formatDate(member.tokenLastUsedAt) : "—"}
       </td>
       <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-        <MemberActions member={member} onAction={onAction} isPending={isPending} copiedUserId={copiedUserId} />
+        <MemberActions member={member} canEditName={canEditName} onAction={onAction} isPending={isPending} copiedUserId={copiedUserId} />
       </td>
       {isClickable && (
         <td className="px-2 py-3">
@@ -417,11 +442,21 @@ function MembersTab() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["team"],
     queryFn: () => api.team.list(),
   });
+
+  const { data: meData } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => api.user.me(),
+  });
+
+  const currentUserId = meData?.user.id ?? null;
 
   const resendMutation = useMutation({
     mutationFn: (userId: string) => api.team.resendInvite(userId),
@@ -456,8 +491,31 @@ function MembersTab() {
     },
   });
 
-  const handleAction = (action: "resend" | "regenerate" | "remove" | "copyLink", userId: string) => {
+  const updateNameMutation = useMutation({
+    mutationFn: ({ userId, firstName, lastName }: { userId: string; firstName: string | null; lastName: string | null }) =>
+      api.team.updateName(userId, { firstName, lastName }),
+    onSuccess: () => {
+      setEditingMember(null);
+      queryClient.invalidateQueries({ queryKey: ["team"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
+    onError: (err) => {
+      setActionError((err as Error).message);
+    },
+  });
+
+  const handleAction = (action: "resend" | "regenerate" | "remove" | "copyLink" | "editName", userId: string) => {
     setActionError(null);
+
+    if (action === "editName") {
+      const member = allMembers.find((m) => m.id === userId);
+      if (member) {
+        setEditingMember(member);
+        setEditFirstName(member.firstName ?? "");
+        setEditLastName(member.lastName ?? "");
+      }
+      return;
+    }
 
     if (action === "copyLink") {
       setPendingUserId(userId);
@@ -482,9 +540,12 @@ function MembersTab() {
   const allMembers = data?.users ?? [];
   const query = search.toLowerCase().trim();
 
-  // Filter by search
+  // Filter by search (email or name)
   const filtered = query
-    ? allMembers.filter((m) => m.email.toLowerCase().includes(query))
+    ? allMembers.filter((m) => {
+        const name = [m.firstName, m.lastName].filter(Boolean).join(" ").toLowerCase();
+        return m.email.toLowerCase().includes(query) || name.includes(query);
+      })
     : allMembers;
 
   const admins = filtered.filter((m) => m.role === "admin");
@@ -528,6 +589,57 @@ function MembersTab() {
       {showInviteForm && (
         <InviteForm onClose={() => setShowInviteForm(false)} />
       )}
+
+      {/* Edit name dialog */}
+      <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit name</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editingMember) {
+                updateNameMutation.mutate({
+                  userId: editingMember.id,
+                  firstName: editFirstName.trim() || null,
+                  lastName: editLastName.trim() || null,
+                });
+              }
+            }}
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm text-muted-foreground">First name</label>
+                <Input
+                  placeholder="First"
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm text-muted-foreground">Last name</label>
+                <Input
+                  placeholder="Last"
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setEditingMember(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={updateNameMutation.isPending}>
+                {updateNameMutation.isPending && <Spinner className="mr-1.5 size-3.5" />}
+                Save
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {actionError && (
         <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-sm text-destructive">
@@ -591,16 +703,24 @@ function MembersTab() {
                     </tr>
                   </thead>
                   <tbody>
-                    {pageItems.map((member, i) => (
-                      <MemberRow
-                        key={member.id}
-                        member={member}
-                        isLast={i === pageItems.length - 1}
-                        isPending={pendingUserId === member.id}
-                        onAction={handleAction}
-                        copiedUserId={copiedUserId}
-                      />
-                    ))}
+                    {pageItems.map((member, i) => {
+                      // Admin can edit non-admin users, or their own name.
+                      // Admin cannot edit another admin's name.
+                      const canEditName =
+                        member.role === "user" ||
+                        (member.role === "admin" && member.id === currentUserId);
+                      return (
+                        <MemberRow
+                          key={member.id}
+                          member={member}
+                          isLast={i === pageItems.length - 1}
+                          isPending={pendingUserId === member.id}
+                          canEditName={canEditName}
+                          onAction={handleAction}
+                          copiedUserId={copiedUserId}
+                        />
+                      );
+                    })}
                   </tbody>
                 </table>
               </CardContent>
