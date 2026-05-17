@@ -24,6 +24,8 @@ userRouter.get('/me', async (c) => {
     .select({
       id: users.id,
       email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
       role: users.role,
       organizationId: users.organizationId,
       preferredAvatarId: users.preferredAvatarId,
@@ -87,6 +89,8 @@ userRouter.patch('/preferences', zValidator('json', updatePreferencesSchema), as
     .select({
       id: users.id,
       email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
       role: users.role,
       organizationId: users.organizationId,
       preferredAvatarId: users.preferredAvatarId,

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, desc } from 'drizzle-orm';
+import type { UserAuthContext } from '../types/auth.js';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { db } from '../db/index.js';
 import { users, authTokens, userGroups, userGroupMembers } from '../db/schema.js';
@@ -30,6 +31,8 @@ teamRouter.get('/', async (c) => {
     .select({
       id: users.id,
       email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
       role: users.role,
       createdAt: users.createdAt,
       tokenId: authTokens.id,
@@ -56,6 +59,8 @@ teamRouter.get('/', async (c) => {
   const result = deduplicated.map((row) => ({
     id: row.id,
     email: row.email,
+    firstName: row.firstName ?? null,
+    lastName: row.lastName ?? null,
     role: row.role,
     createdAt: row.createdAt,
     hasToken: !!row.tokenId,
@@ -381,6 +386,57 @@ teamRouter.post('/:userId/regenerate-token', async (c) => {
   });
 
   logger.debug({ userId, email: user.email }, 'Auth token regenerated and invitation email sent.');
+
+  return c.json({ success: true });
+})
+
+const updateNameSchema = z.object({
+  firstName: z.string().trim().max(100).nullable(),
+  lastName: z.string().trim().max(100).nullable(),
+});
+
+/**
+ * PATCH /team/:userId
+ * Update a user's first and last name.
+ * Admins can edit any non-admin user's name.
+ * An admin can only edit their own name, not another admin's name.
+ */
+teamRouter.patch('/:userId', zValidator('json', updateNameSchema), async (c) => {
+
+  const auth = c.get('auth') as UserAuthContext;
+  const userId = c.req.param('userId');
+  const { firstName, lastName } = c.req.valid('json');
+
+  // Verify user belongs to this organization
+  const [user] = await db
+    .select({ id: users.id, role: users.role })
+    .from(users)
+    .where(
+      and(
+        eq(users.id, userId),
+        eq(users.organizationId, auth.organizationId)
+      )
+    )
+    .limit(1);
+
+  if (!user) {
+
+    return c.json({ error: 'User not found.' }, 404);
+  }
+
+  // Admins can edit non-admin users, or their own profile.
+  // They cannot edit another admin's name.
+  if (user.role === 'admin' && userId !== auth.userId) {
+
+    return c.json({ error: 'Cannot edit another admin\'s name.' }, 403);
+  }
+
+  await db
+    .update(users)
+    .set({ firstName: firstName ?? null, lastName: lastName ?? null })
+    .where(eq(users.id, userId));
+
+  logger.debug({ userId, firstName, lastName }, 'User name updated.');
 
   return c.json({ success: true });
 })
