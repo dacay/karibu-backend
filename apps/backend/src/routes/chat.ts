@@ -522,7 +522,7 @@ chat.post('/assistant', zValidator('json', assistantChatSchema), async (c) => {
     .limit(1);
   const assistantOrgName = assistantOrg?.name ?? 'your organization';
 
-  const assistantSystemPrompt = `You are a helpful assistant for the organization "${assistantOrgName}". Answer questions clearly and concisely. You have access to organizational knowledge through the searchKnowledge tool — always call it before answering.
+  const assistantSystemPrompt = `You are a helpful assistant for the organization "${assistantOrgName}". Answer questions clearly and concisely. You have access to organizational knowledge through the searchKnowledge tool — call it before answering whenever the user is asking for information.
 
 The tool returns results in labeled sections:
 - [Source Knowledge] — curated, verified organizational knowledge. Prioritize this.
@@ -531,14 +531,16 @@ The tool returns results in labeled sections:
 
 IMPORTANT: Never include the section labels [Source Knowledge] or [Document Knowledge] in your response text. They are internal markers only.
 
-You MUST call reportSource before writing your response. Choose:
-- "source" if your answer will rely on [Source Knowledge]
-- "document" if your answer will rely on [Document Knowledge]
-- "general" if the search results were irrelevant and you will answer from general knowledge`;
+You MUST call reportSource before writing your response, describing what your response will be based on:
+- "source" if your response will convey information from [Source Knowledge]
+- "document" if your response will convey information from [Document Knowledge]
+- "general" if your response will convey information from your own general knowledge (search results were irrelevant or you didn't search)
+- "conversational" if your response does not convey factual information from a knowledge source — e.g. greetings, thanks, small talk, acknowledgments, clarifying questions back to the user, or describing your own capabilities and how you can help`;
 
   // Track the best knowledge source used during this response:
-  // null = tool not called, 'source' = approved values, 'document' = vector DB, 'general' = LLM only
-  let dataSource: 'source' | 'document' | 'general' | null = null;
+  // null = tool not called, 'source' = approved values, 'document' = vector DB,
+  // 'general' = LLM only, 'conversational' = non-informational reply (no badge shown)
+  let dataSource: 'source' | 'document' | 'general' | 'conversational' | null = null;
   let searchWasCalled = false;
 
   const result = streamText({
@@ -599,13 +601,13 @@ You MUST call reportSource before writing your response. Choose:
         },
       },
       reportSource: {
-        description: 'Report which knowledge source your answer actually used. Call this after writing your response.',
+        description: 'Report what your response will be based on. Call this before writing your response.',
         inputSchema: z.object({
-          source: z.enum(['source', 'document', 'general']).describe(
-            '"source" if answer used Source Knowledge, "document" if answer used Document Knowledge, "general" if search results were irrelevant and you used your own knowledge',
+          source: z.enum(['source', 'document', 'general', 'conversational']).describe(
+            '"source" if response conveys Source Knowledge, "document" if response conveys Document Knowledge, "general" if response conveys factual information from your own general knowledge, "conversational" if response does not convey factual information from a knowledge source (greetings, small talk, acknowledgments, clarifying questions, or describing your own capabilities)',
           ),
         }),
-        execute: async ({ source }: { source: 'source' | 'document' | 'general' }) => {
+        execute: async ({ source }: { source: 'source' | 'document' | 'general' | 'conversational' }) => {
           dataSource = source;
           return 'Recorded.';
         },

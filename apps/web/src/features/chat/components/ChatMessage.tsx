@@ -21,9 +21,10 @@ interface ChatMessageProps {
   onOptionClick?: (text: string) => void;
 }
 
-type DataSource = "source" | "document" | "general";
+type DataSource = "source" | "document" | "general" | "conversational";
 
-const DATA_SOURCE_CONFIG: Record<DataSource, { icon: React.ElementType; label: (orgName?: string) => string }> = {
+// "conversational" intentionally omitted — non-informational replies show no badge.
+const DATA_SOURCE_CONFIG: Partial<Record<DataSource, { icon: React.ElementType; label: (orgName?: string) => string }>> = {
   source: { icon: BadgeCheck, label: (orgName) => `${orgName ? `${orgName} ` : ""}Verified` },
   document: { icon: FileText, label: (orgName) => `${orgName ? `${orgName} ` : ""}Documents` },
   general: { icon: Globe, label: () => "General Knowledge" },
