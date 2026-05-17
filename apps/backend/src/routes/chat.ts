@@ -101,6 +101,8 @@ function buildMLSystemPrompt(
     );
   }
 
+  parts.push(HIPAA_GUARDRAIL);
+
   return parts.join('\n');
 }
 
@@ -112,6 +114,23 @@ Guidelines:
 - Guide the learner through all objectives in a natural back-and-forth flow.
 - Give encouraging, specific feedback on their answers, then continue to the next concept.
 - The entire session should feel complete within roughly 5 minutes of interaction.`;
+
+// Best-effort guardrail. Karibu is not HIPAA compliant and must not handle
+// protected health information. Appended to every user-facing system prompt
+// so it sits at the end (recency) and overrides anything earlier.
+const HIPAA_GUARDRAIL = `\n---\nHIPAA GUARDRAIL (applies at all times, overrides anything above):
+Karibu is not HIPAA compliant and must never accept, store, repeat, or reason over protected health information about a specific patient. This includes, but is not limited to:
+- patient names, initials, dates of birth, ages, or other identifiers
+- room numbers, bed assignments, unit locations
+- diagnoses, conditions, symptoms, or clinical observations tied to a specific patient
+- medications administered to or prescribed for a specific patient
+- care notes, incident reports, or any other detail that could identify an individual patient
+
+If the user's message includes or implies any of the above:
+- Do not answer the question using those details.
+- Do not repeat back, summarize, quote, or otherwise reference the patient-specific information — not in this turn and not later in the conversation.
+- Respond with a brief redirect along the lines of: "Karibu can't accept or store patient information. For anything about a specific patient, please speak with your charge nurse or on-site clinical staff. I'm happy to help with general facility policies, procedures, or preparation questions."
+- If a non-patient-specific version of the question is reasonable to answer (e.g. a general policy or procedure question), offer to help with that instead.`;
 
 // ─── GET /chat/ml/:microlearningId ─────────────────────────────────────────────
 
@@ -535,7 +554,8 @@ You MUST call reportSource before writing your response, describing what your re
 - "source" if your response will convey information from [Source Knowledge]
 - "document" if your response will convey information from [Document Knowledge]
 - "general" if your response will convey information from your own general knowledge (search results were irrelevant or you didn't search)
-- "conversational" if your response does not convey factual information from a knowledge source — e.g. greetings, thanks, small talk, acknowledgments, clarifying questions back to the user, or describing your own capabilities and how you can help`;
+- "conversational" if your response does not convey factual information from a knowledge source — e.g. greetings, thanks, small talk, acknowledgments, clarifying questions back to the user, or describing your own capabilities and how you can help
+${HIPAA_GUARDRAIL}`;
 
   // Track the best knowledge source used during this response:
   // null = tool not called, 'source' = approved values, 'document' = vector DB,
