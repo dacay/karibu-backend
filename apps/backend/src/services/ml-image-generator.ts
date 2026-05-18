@@ -16,22 +16,31 @@ import { broadcastFeedUpdate } from '../routes/learner-sse.js';
  * Build a prompt for Gemini image generation based on the ML's topics and subtopics.
  */
 function buildImagePrompt(
+  mlTitle: string,
   topicNames: string[],
   subtopicNames: string[],
   organizationName: string,
+  learnerTermPlural: string,
 ): string {
-  const topicList = topicNames.length > 0
-    ? topicNames.map((n) => `"${n}"`).join(', ')
-    : '"professional development"';
+  const topicContext = topicNames.length > 0
+    ? ` It belongs to the broader topic of ${topicNames.map((n) => `"${n}"`).join(', ')}${
+        subtopicNames.length > 0 ? `, focusing on ${subtopicNames.join(', ')}` : ''
+      }.`
+    : '';
 
-  const subtopicList = subtopicNames.length > 0
-    ? ` focusing on ${subtopicNames.join(', ')}`
+  // Only inject audience when the org customized it — the default "users" is
+  // generic enough to actively mislead Gemini toward stock imagery.
+  const audienceLine = learnerTermPlural && learnerTermPlural !== 'users'
+    ? ` The audience is ${learnerTermPlural}; the scene should reflect their actual work environment.`
     : '';
 
   return (
     `Generate a hyper-realistic, visually striking cover image for a microlearning module. ` +
-    `The module is about ${topicList}${subtopicList} at an organization called "${organizationName}". ` +
-    `Create an atmospheric, professional scene that visually represents this topic. ` +
+    `The module is titled "${mlTitle}" and is offered at an organization called "${organizationName}".` +
+    topicContext +
+    audienceLine +
+    ` Create an atmospheric, professional scene that visually represents the module title, informed by its broader topic context. ` +
+    `Avoid generic corporate stock imagery — no business suits, conference rooms, or handshakes unless directly relevant to the topic. ` +
     `The image should work well as a card background with text overlaid on it — ` +
     `use rich colors, depth of field, and cinematic lighting. ` +
     `Do not include any text, logos, or watermarks in the image.`
@@ -111,7 +120,7 @@ export async function generateMlImage(mlId: string): Promise<void> {
       subtopicNames.push(...subtopicRows.map((s) => s.name));
     }
 
-    const prompt = buildImagePrompt(topicNames, subtopicNames, org.name);
+    const prompt = buildImagePrompt(ml.title, topicNames, subtopicNames, org.name, org.learnerTermPlural);
 
     const model = env.GEMINI_IMAGE_MODEL;
     logger.info({ mlId, model, prompt }, 'Generating ML cover image with Gemini.');
