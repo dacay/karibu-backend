@@ -4,7 +4,7 @@ A standalone Hono service that bridges Teambridge ↔ Karibu around nurse onboar
 
 End-to-end loop:
 
-1. Teambridge sends `shift_created` / `shift_updated` webhooks. We resolve the assigned nurse(s) and, the first time we see a (nurse, facility) pair, invite the nurse to the right Karibu org via `POST /team/invite` and create + assign a Teambridge task template carrying the nurse's Karibu sign-in link.
+1. Teambridge sends `shift_created` / `shift_updated` / `shift_request_approved` webhooks (the last one covers request/approve shift assignment, where no `shift_updated` fires). We resolve the assigned nurse(s) and, the first time we see a (nurse, facility) pair, invite the nurse to the right Karibu org via `POST /team/invite` and create + assign a Teambridge task template carrying the nurse's Karibu sign-in link.
 2. The nurse opens the link, completes a verification microlearning in Karibu. Karibu fires an outbound webhook back at us (`POST /webhooks/karibu/ml-completed`).
 3. We mark the shift's "Karibu Completed" field via the Open API, persist the verification, and delete the now-redundant Teambridge task.
 4. Every subsequent shift the same nurse is assigned to at the same facility is auto-marked "Karibu Completed" by the shift_updated handler — no extra ML completion required.
@@ -70,9 +70,11 @@ signature.ts      HMAC SHA-256 webhook verification (Teambridge inbound only).
 state.ts          Postgres-backed dedup + shift snapshot diffing
 webhook.ts        Teambridge webhook handler. Verify + parse + dedup, then
                   branch on event type:
-                    • shift_created/shift_updated: fetch shift → diff →
-                      onboard new (nurse, facility) pairs → auto-apply
-                      Karibu Completed for any already-verified pair.
+                    • shift_created/shift_updated/shift_request_approved:
+                      fetch shift → diff → onboard new (nurse, facility)
+                      pairs → auto-apply Karibu Completed for any
+                      already-verified pair. (approval is treated as an
+                      assignment; no shift_updated fires in approve flows.)
                     • shift_deleted: if the deleted shift matches an invite
                       row's first_shift_id, tear down the task instance +
                       task template and drop the invite row.
@@ -124,10 +126,11 @@ Pick which file to load via `FACILITIES_FILE`. Boot throws on any missing field 
 
 1. Verify HMAC (or skip if disabled) → 400 on mismatch.
 2. Parse JSON → 400 on invalid.
-3. If `event_type` is not in `HANDLED_EVENT_TYPES` (currently `shift_created`, `shift_updated`, `shift_deleted`) → 200 ignored.
+3. If `event_type` is not in `HANDLED_EVENT_TYPES` (currently `shift_created`, `shift_updated`, `shift_request_approved`, `shift_deleted`) → 200 ignored.
 4. Return 200 and process asynchronously (Teambridge expects 2xx in <5s).
 
-**`shift_created` / `shift_updated`:**
+**`shift_created` / `shift_updated` / `shift_request_approved`:**
+   - `shift_request_approved` runs the exact same processor as `shift_updated`. In the request/approve flow Teambridge does **not** emit `shift_updated` when an approval lands, so the approval event is our only signal that the shift is now assigned. (The request/rejection events are intentionally not handled — approval is enough to detect assignment.) Its `data` payload carries `record_id`/`actor`/`account_id` just like the other shift events, so the handler treats it identically.
    - GET shift record by `record_id` via Open API.
    - Resolve facility via location field; ignore if untracked.
    - Dedup against `teambridge_events` (atomic insert).

@@ -24,7 +24,16 @@ import {
 
 const log = logger.child({ module: "webhook" });
 
-const HANDLED_EVENT_TYPES = new Set(["shift_created", "shift_updated", "shift_deleted"]);
+// shift_request_approved is treated exactly like shift_updated: in the request/approve
+// flow Teambridge does NOT emit shift_updated when the request is approved, so the approval
+// event is our only signal that the shift is now assigned to someone. (We deliberately do
+// not handle the request/rejection events — approval is sufficient to detect assignment.)
+const HANDLED_EVENT_TYPES = new Set([
+  "shift_created",
+  "shift_updated",
+  "shift_request_approved",
+  "shift_deleted",
+]);
 
 interface WebhookEvent {
   version: string;
@@ -141,7 +150,7 @@ async function processShiftUpdate(event: WebhookEvent): Promise<void> {
         : null,
       firstSighting: diff === null,
     },
-    "processed: shift_updated",
+    `processed: ${event.event_type}`,
   );
 
   if (diff && Object.keys(diff.changed).length) {
