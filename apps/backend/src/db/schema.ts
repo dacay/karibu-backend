@@ -39,6 +39,8 @@ export const users = pgTable('users', {
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   // User's preferred avatar — stored as plain uuid (no FK) to avoid circular reference with avatars table
   preferredAvatarId: uuid('preferred_avatar_id'),
+  // Set the first time a learner completes or dismisses onboarding; null = never seen it
+  onboardingCompletedAt: timestamp('onboarding_completed_at'),
   ...timestamps,
 }, (table) => [
   unique('users_email_org_unique').on(table.email, table.organizationId),
