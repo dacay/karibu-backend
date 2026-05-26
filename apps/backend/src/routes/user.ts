@@ -29,6 +29,7 @@ userRouter.get('/me', async (c) => {
       role: users.role,
       organizationId: users.organizationId,
       preferredAvatarId: users.preferredAvatarId,
+      onboardingCompletedAt: users.onboardingCompletedAt,
       defaultAvatarId: organizations.defaultAvatarId,
     })
     .from(users)
@@ -94,6 +95,7 @@ userRouter.patch('/preferences', zValidator('json', updatePreferencesSchema), as
       role: users.role,
       organizationId: users.organizationId,
       preferredAvatarId: users.preferredAvatarId,
+      onboardingCompletedAt: users.onboardingCompletedAt,
       defaultAvatarId: organizations.defaultAvatarId,
     })
     .from(users)
@@ -104,6 +106,23 @@ userRouter.patch('/preferences', zValidator('json', updatePreferencesSchema), as
   logger.debug({ userId: auth.userId, preferredAvatarId }, 'User avatar preference updated.');
 
   return c.json({ user: updated });
+});
+
+/**
+ * POST /user/onboarding/complete
+ * Marks first-time onboarding as completed (or dismissed) for the current user.
+ * Idempotent: only sets the timestamp the first time.
+ */
+userRouter.post('/onboarding/complete', async (c) => {
+
+  const auth = c.get('auth') as UserAuthContext;
+
+  await db
+    .update(users)
+    .set({ onboardingCompletedAt: new Date() })
+    .where(and(eq(users.id, auth.userId), isNull(users.onboardingCompletedAt)));
+
+  return c.json({ success: true });
 });
 
 export default userRouter;

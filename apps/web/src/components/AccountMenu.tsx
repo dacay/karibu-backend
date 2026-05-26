@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { api } from "@/lib/api";
+import { api, type UserProfile } from "@/lib/api";
 
 const APPEARANCE_OPTIONS: { value: string; label: string; icon: React.ElementType }[] = [
   { value: "light", label: "Light", icon: Sun },
@@ -54,7 +54,23 @@ export function AccountMenu() {
   const updatePreferenceMutation = useMutation({
     mutationFn: (preferredAvatarId: string | null) =>
       api.user.updatePreferences({ preferredAvatarId }),
-    onSuccess: () => {
+    // Optimistic: update the selection instantly, reconcile in the background.
+    onMutate: async (preferredAvatarId) => {
+      await queryClient.cancelQueries({ queryKey: ["user", "me"] });
+      const previous = queryClient.getQueryData<{ user: UserProfile }>(["user", "me"]);
+      if (previous?.user) {
+        queryClient.setQueryData(["user", "me"], {
+          user: { ...previous.user, preferredAvatarId },
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["user", "me"], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["user", "me"] });
     },
   });
