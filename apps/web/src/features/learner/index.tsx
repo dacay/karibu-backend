@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { AccountMenu } from "@/components/AccountMenu";
 import { KaribuFooter } from "@/components/KaribuFooter";
+import { OnboardingModal } from "./OnboardingModal";
 import { getVersionedAssetUrl } from "@/lib/assets";
 import { api, getApiBaseUrl, getToken, DEFAULT_INACTIVITY_WINDOW_MS, type LearnerFeedML } from "@/lib/api";
 
@@ -278,6 +279,7 @@ export function LearnerRoot() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <OnboardingModal />
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="flex h-16 items-center justify-between border-b px-6">
         {!logoLoading && (

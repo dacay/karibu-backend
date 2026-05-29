@@ -230,6 +230,7 @@ export interface UserProfile {
   role: "admin" | "user";
   organizationId: string;
   preferredAvatarId: string | null;
+  onboardingCompletedAt: string | null;
   defaultAvatarId: string | null;
 }
 
@@ -653,6 +654,10 @@ export const api = {
       request<{ user: UserProfile }>("/user/preferences", {
         method: "PATCH",
         body: JSON.stringify(body),
+      }),
+    completeOnboarding: () =>
+      request<{ success: boolean }>("/user/onboarding/complete", {
+        method: "POST",
       }),
   },
   org: {
