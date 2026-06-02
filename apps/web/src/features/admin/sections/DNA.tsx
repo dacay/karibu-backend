@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Plus,
   Check,
+  CheckCheck,
   X,
   Wand2,
   Pencil,
@@ -267,6 +268,11 @@ function SubtopicRow({ subtopic, onSuggestionAction }: { subtopic: DnaSubtopic; 
     },
   });
 
+  const approveAllMutation = useMutation({
+    mutationFn: () => api.dna.approveAllValues(subtopic.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["dna"] }),
+  });
+
   const updateMutation = useMutation({
     mutationFn: () => api.dna.updateSubtopic(subtopic.id, { name: editName, description: editDescription }),
     onSuccess: () => {
@@ -439,6 +445,23 @@ function SubtopicRow({ subtopic, onSuggestionAction }: { subtopic: DnaSubtopic; 
                     {subtopic.values.map((v) => <ValueRow key={v.id} value={v} />)}
                   </div>
                 )}
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  {subtopic.values.some((v) => v.approval === "pending") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-green-700 border-green-300 hover:bg-green-50"
+                      disabled={approveAllMutation.isPending}
+                      onClick={() => approveAllMutation.mutate()}
+                    >
+                      {approveAllMutation.isPending
+                        ? <Spinner className="size-3 mr-1" />
+                        : <CheckCheck className="size-3 mr-1" />}
+                      Approve all
+                    </Button>
+                  )}
+                </div>
                 {/* Add value inline form */}
                 {showAddValue ? (
                   <div className="flex flex-col gap-2 p-3 border rounded-lg bg-muted/30">
