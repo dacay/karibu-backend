@@ -1,8 +1,12 @@
 import 'dotenv/config';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { eq, and, isNull } from 'drizzle-orm';
-import { conversationPatterns } from '../db/schema.js';
+import { conversationPatterns, avatars } from '../db/schema.js';
+import { uploadToAssetsBucket, buildBuiltInAvatarImageKey } from '../services/s3.js';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -117,6 +121,150 @@ Interaction rules:
   },
 ];
 
+// Built-in avatars available to all organizations.
+// organizationId is null — these are global personas.
+// `imageFile` refers to a bundled image under apps/backend/assets/avatars/.
+// `voiceId` is a Deepgram Aura-2 voice id (see DEEPGRAM_VOICES in the web app).
+const BUILT_IN_AVATARS: Array<{
+  slug: string;
+  name: string;
+  personality: string;
+  voiceId: string;
+  imageFile: string;
+}> = [
+  {
+    slug: 'amara',
+    name: 'Amara',
+    voiceId: 'aura-2-athena-en', // Clear, authoritative
+    imageFile: 'amara.jpg',
+    personality:
+      "Amara is a seasoned leadership coach with two decades in the boardroom. She is warm but direct — the kind of mentor who clearly believes in you while holding you to a high bar. She frames lessons around real stakes and the decisions you'd actually face, asks pointed questions, and acknowledges progress without sugar-coating the gaps. Expect measured, confident guidance, a steady sense of perspective, and the occasional dry bit of humor.",
+  },
+  {
+    slug: 'mei',
+    name: 'Mei',
+    voiceId: 'aura-2-aurora-en', // Bright, energetic
+    imageFile: 'mei.jpg',
+    personality:
+      "Mei is the upbeat peer who makes everything feel approachable. Curious and quick to laugh, she treats learning like a shared adventure rather than a test. She leans on everyday examples, cheers you on through the tricky parts, and is happy to admit when something tripped her up too. Her energy runs high but never overwhelming — think enthusiastic study buddy who genuinely wants you to get it.",
+  },
+  {
+    slug: 'nora',
+    name: 'Nora',
+    voiceId: 'aura-2-asteria-en', // Warm and friendly
+    imageFile: 'nora.jpg',
+    personality:
+      "Nora spent years on busy hospital floors and it shows — she is calm under pressure, deeply practical, and genuinely caring. She breaks complex steps into clear, do-this-next instructions and checks in to make sure you're keeping up before moving on. Reassuring and patient, she treats mistakes as a normal part of getting better and keeps bringing the conversation back to what actually matters for the people you serve.",
+  },
+  {
+    slug: 'julian',
+    name: 'Julian',
+    voiceId: 'aura-2-orion-en', // Deep, resonant
+    imageFile: 'julian.jpg',
+    personality:
+      "Julian is an analytical, evidence-first thinker who approaches every topic like a careful diagnosis: gather the facts, reason through them, then reach a sound conclusion. He is soft-spoken and precise, prefers clarity over flash, and will gently push you to justify your reasoning rather than just guess. Methodical and unhurried, he rewards careful thinking and isn't quite satisfied with a right answer until you can explain exactly why it's right.",
+  },
+  {
+    slug: 'diego',
+    name: 'Diego',
+    voiceId: 'aura-2-apollo-en', // Clear, engaging
+    imageFile: 'diego.jpg',
+    personality:
+      "Diego is the easygoing builder type who learns by tinkering and explains things the way he'd tell a friend over coffee. Relaxed and good-humored, he favors plain language, quick analogies, and a 'let's just try it' experiment over heavy theory. He keeps the pressure low, riffs on your ideas instead of grading them, and is happiest when a tricky concept finally clicks into something you can actually put to use.",
+  },
+];
+
+// Maps file extensions to the MIME types accepted by the avatars feature.
+const IMAGE_CONTENT_TYPES: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+};
+
+// Bundled avatar images live at apps/backend/assets/avatars/, two levels up from
+// this script whether it runs from src/scripts (tsx) or dist/scripts (built).
+const AVATAR_ASSETS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'assets', 'avatars');
+
+/**
+ * Upload a built-in avatar's bundled image to the assets bucket and return its key.
+ * Returns null (and logs a warning) when the file is missing or S3 is unavailable,
+ * so seeding still succeeds without an image rather than aborting.
+ */
+async function uploadBuiltInAvatarImage(slug: string, imageFile: string): Promise<{ key: string; bucket: string } | null> {
+
+  const ext = imageFile.includes('.') ? imageFile.split('.').pop()!.toLowerCase() : '';
+  const contentType = IMAGE_CONTENT_TYPES[ext];
+
+  if (!contentType) {
+    console.warn(`  ! Skipping image for ${slug}: unsupported extension "${ext}".`);
+    return null;
+  }
+
+  let buffer: Buffer;
+
+  try {
+    buffer = await readFile(join(AVATAR_ASSETS_DIR, imageFile));
+  } catch {
+    console.warn(`  ! Image "${imageFile}" not found in ${AVATAR_ASSETS_DIR}; seeding ${slug} without an image.`);
+    return null;
+  }
+
+  const key = buildBuiltInAvatarImageKey(slug, ext);
+
+  try {
+    const { s3Bucket } = await uploadToAssetsBucket(key, buffer, contentType);
+    return { key, bucket: s3Bucket };
+  } catch (err) {
+    console.warn(`  ! Failed to upload image for ${slug} (is S3 configured?); seeding without an image.`, err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function seedBuiltInAvatars(dbInstance: PostgresJsDatabase<any>) {
+  console.log('Seeding built-in avatars...');
+
+  for (const avatar of BUILT_IN_AVATARS) {
+    const [existing] = await dbInstance
+      .select()
+      .from(avatars)
+      .where(and(eq(avatars.name, avatar.name), isNull(avatars.organizationId)))
+      .limit(1);
+
+    const image = await uploadBuiltInAvatarImage(avatar.slug, avatar.imageFile);
+
+    if (existing) {
+      await dbInstance
+        .update(avatars)
+        .set({
+          personality: avatar.personality,
+          voiceId: avatar.voiceId,
+          // Only overwrite the image when we successfully uploaded a new one.
+          ...(image ? { imageS3Key: image.key, imageS3Bucket: image.bucket } : {}),
+        })
+        .where(eq(avatars.id, existing.id));
+      console.log(`  Updated avatar: ${avatar.name}`);
+      continue;
+    }
+
+    await dbInstance.insert(avatars).values({
+      organizationId: null,
+      name: avatar.name,
+      personality: avatar.personality,
+      voiceId: avatar.voiceId,
+      imageS3Key: image?.key ?? null,
+      imageS3Bucket: image?.bucket ?? null,
+      isBuiltIn: true,
+    });
+
+    console.log(`  Created avatar: ${avatar.name}`);
+  }
+
+  console.log('Built-in avatars seeded.');
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function seedDefaults(dbInstance: PostgresJsDatabase<any>) {
   console.log('Seeding built-in conversation patterns...');
@@ -154,6 +302,8 @@ export async function seedDefaults(dbInstance: PostgresJsDatabase<any>) {
   }
 
   console.log('Built-in patterns seeded.');
+
+  await seedBuiltInAvatars(dbInstance);
 }
 
 // Allow running this script directly
